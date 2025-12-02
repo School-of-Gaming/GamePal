@@ -1,0 +1,68 @@
+import type { Parent } from '../../App';
+import { Users, Search, Heart, CheckCircle, Bell } from 'lucide-react';
+
+type ParentDashboardProps = {
+  parent: Parent;
+};
+
+export function ParentDashboard({ parent }: ParentDashboardProps) {
+  return (
+    <div className="h-screen w-screen bg-white flex flex-col">
+      {/* Top Navigation */}
+      <nav className="bg-gray-100 shadow-sm border-b w-full">
+        <div className="px-6 py-4 flex items-center gap-3">
+          <div className="text-3xl">👨‍👩‍👧‍👦</div>
+          <div>
+            <h2 className="text-purple-700 text-xl font-bold">GamePal</h2>
+            <p className="text-gray-600 text-sm">Welcome, {parent.name}</p>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Dashboard */}
+      <main className="flex-1 w-full p-6 overflow-auto">
+        <div>
+          <h1 className="text-3xl font-bold mb-2 text-gray-900">Parent Dashboard</h1>
+          <p className="text-gray-700">
+            Manage your children's profiles and matches
+          </p>
+        </div>
+
+        {/* Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+            <Users className="w-8 h-8 mb-3 text-purple-700" />
+            <h3 className="mb-2 text-xl font-semibold text-gray-800">Kids Manager</h3>
+            <p className="text-gray-700">
+              {parent.children.length} {parent.children.length === 1 ? 'child' : 'children'} registered
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+            <Search className="w-8 h-8 mb-3 text-yellow-500" />
+            <h3 className="mb-2 text-xl font-semibold text-gray-800">Find Matches</h3>
+            <p className="text-gray-700">Browse potential game buddies</p>
+          </div>
+
+          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+            <Heart className="w-8 h-8 mb-3 text-pink-600" />
+            <h3 className="mb-2 text-xl font-semibold text-gray-800">Potential Matches</h3>
+            <p className="text-gray-700">Review and chat with parents</p>
+          </div>
+
+          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+            <CheckCircle className="w-8 h-8 mb-3 text-green-600" />
+            <h3 className="mb-2 text-xl font-semibold text-gray-800">Approved Matches</h3>
+            <p className="text-gray-700">View confirmed friendships</p>
+          </div>
+
+          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+            <Bell className="w-8 h-8 mb-3 text-orange-600" />
+            <h3 className="mb-2 text-xl font-semibold text-gray-800">Notifications</h3>
+            <p className="text-gray-700">Stay updated on activities</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
