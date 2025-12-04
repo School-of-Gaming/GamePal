@@ -1,25 +1,17 @@
-import type { Parent } from '../../App';
-import { Users, Search, Heart, CheckCircle, Bell } from 'lucide-react';
+import type { Parent } from "../../App";
+import { ParentNav } from "./ParentNav";
+import { Users, Search, Heart, CheckCircle, Bell } from "lucide-react";
 
 type ParentDashboardProps = {
   parent: Parent;
+  onGoToKidsManager: () => void;
 };
 
-export function ParentDashboard({ parent }: ParentDashboardProps) {
+export function ParentDashboard({ parent, onGoToKidsManager }: ParentDashboardProps) {
   return (
-    <div className="h-screen w-screen bg-white flex flex-col">
-      {/* Top Navigation */}
-      <nav className="bg-gray-100 shadow-sm border-b w-full">
-        <div className="px-6 py-4 flex items-center gap-3">
-          <div className="text-3xl">👨‍👩‍👧‍👦</div>
-          <div>
-            <h2 className="text-purple-700 text-xl font-bold">GamePal</h2>
-            <p className="text-gray-600 text-sm">Welcome, {parent.name}</p>
-          </div>
-        </div>
-      </nav>
+    <div className="flex flex-col h-screen w-screen bg-white">
+      <ParentNav parent={parent} />
 
-      {/* Main Dashboard */}
       <main className="flex-1 w-full p-6 overflow-auto">
         <div>
           <h1 className="text-3xl font-bold mb-2 text-gray-900">Parent Dashboard</h1>
@@ -30,11 +22,14 @@ export function ParentDashboard({ parent }: ParentDashboardProps) {
 
         {/* Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+          <div
+            onClick={onGoToKidsManager}
+            className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer"
+          >
             <Users className="w-8 h-8 mb-3 text-purple-700" />
             <h3 className="mb-2 text-xl font-semibold text-gray-800">Kids Manager</h3>
             <p className="text-gray-700">
-              {parent.children.length} {parent.children.length === 1 ? 'child' : 'children'} registered
+              {parent.children.length} {parent.children.length === 1 ? "child" : "children"} registered
             </p>
           </div>
 

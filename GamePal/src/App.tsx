@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { ParentDashboard } from './components/parent/ParentDashboard';
+import { useState } from "react";
+import { ParentDashboard } from "./components/parent/ParentDashboard";
+import { KidsManager } from "./components/parent/KidsManager";
+import type { Parent } from "./App";
 
 export type Child = {
   id: string;
@@ -22,34 +24,47 @@ export type Parent = {
   children: Child[];
 };
 
+
 export default function App() {
-  const mockParent: Parent = {
-    id: 'parent1',
-    name: 'Alice',
-    email: 'alice@example.com',
+  const [parent, setParent] = useState<Parent>({
+    id: "p1",
+    name: "Alice",
+    email: "alice@example.com",
     children: [
       {
-        id: 'child1',
-        name: 'Charlie',
+        id: "c1",
+        name: "Bob",
         age: 8,
-        avatar: '',
-        games: [],
-        bio: '',
-        language: [],
-        hobbies: [],
-        interests: [],
-        playType: [],
-        theme: [],
+        avatar: "🦁",
+        games: ["Minecraft"],
+        bio: "Loves building castles",
+        language: ["English"],
+        hobbies: ["Drawing"],
+        interests: ["Animals"],
+        playType: ["Creative"],
+        theme: ["Fantasy"],
       },
     ],
-  };
+  });
 
-  const [currentParent] = useState<Parent>(mockParent);
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids">("dashboard");
 
-  
   return (
-    <ParentDashboard
-      parent={currentParent}
-    />
+    <>
+      {currentPage === "dashboard" && (
+        <ParentDashboard
+          parent={parent}
+          onGoToKidsManager={() => setCurrentPage("kids")}
+        />
+      )}
+
+      {currentPage === "kids" && (
+        <KidsManager
+          parent={parent}
+          onBack={() => setCurrentPage("dashboard")}
+          onUpdateParent={setParent} 
+        />
+      )}
+    </>
   );
 }
