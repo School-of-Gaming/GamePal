@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ParentDashboard } from "./components/parent/ParentDashboard";
 import { KidsManager } from "./components/parent/KidsManager";
+import { Matchmaking } from "./components/parent/Matchmaking";
 import type { Parent } from "./App";
 
 export type Child = {
@@ -8,6 +9,7 @@ export type Child = {
   name: string;
   age: number;
   avatar: string;
+  commonTags?: string[];
   games: string[];
   bio: string;
   language: string[];
@@ -33,21 +35,21 @@ export default function App() {
     children: [
       {
         id: "c1",
-        name: "Bob",
+        name: "Taylor",
         age: 8,
         avatar: "🦁",
-        games: ["Minecraft"],
-        bio: "Loves building castles",
+        bio: "Competitive gamer who loves team play!",
+        games: ['Roblox', 'Fortnite'],
         language: ["English"],
-        hobbies: ["Drawing"],
-        interests: ["Animals"],
-        playType: ["Creative"],
+        hobbies: ['Sports', 'Gaming'],
+        interests: ['Competition', 'Technology'],
+        playType: ['Competitive'],
         theme: ["Fantasy"],
       },
     ],
   });
 
-  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids">("dashboard");
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids" | "matchmaking">("dashboard");
 
   return (
     <>
@@ -55,6 +57,7 @@ export default function App() {
         <ParentDashboard
           parent={parent}
           onGoToKidsManager={() => setCurrentPage("kids")}
+          onGoToMatchmaking={() => setCurrentPage("matchmaking")}
         />
       )}
 
@@ -63,6 +66,13 @@ export default function App() {
           parent={parent}
           onBack={() => setCurrentPage("dashboard")}
           onUpdateParent={setParent} 
+        />
+      )}
+
+      {currentPage === "matchmaking" && (
+        <Matchmaking
+          parent={parent}
+          onBack={() => setCurrentPage("dashboard")}
         />
       )}
     </>

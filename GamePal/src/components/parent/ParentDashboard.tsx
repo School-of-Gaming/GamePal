@@ -5,9 +5,10 @@ import { Users, Search, Heart, CheckCircle, Bell } from "lucide-react";
 type ParentDashboardProps = {
   parent: Parent;
   onGoToKidsManager: () => void;
+  onGoToMatchmaking: () => void;
 };
 
-export function ParentDashboard({ parent, onGoToKidsManager }: ParentDashboardProps) {
+export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking}: ParentDashboardProps) {
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
       <ParentNav parent={parent} />
@@ -33,7 +34,10 @@ export function ParentDashboard({ parent, onGoToKidsManager }: ParentDashboardPr
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+          <div
+            onClick={onGoToMatchmaking}   
+            className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer"
+          >
             <Search className="w-8 h-8 mb-3 text-yellow-500" />
             <h3 className="mb-2 text-xl font-semibold text-gray-800">Find Matches</h3>
             <p className="text-gray-700">Browse potential game buddies</p>

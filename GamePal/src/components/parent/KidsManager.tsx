@@ -36,7 +36,7 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
         <Button
             onClick={onBack}
             variant="ghost"
-            className="mb-4 text-gray-700 hover:text-[#faa901]"
+            className="mb-4 text-white hover:text-[#faa901]"
             >
             &larr; Back
         </Button>
@@ -64,7 +64,7 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
                         size="sm"
                         variant="ghost"
                         onClick={() => startEditing(child)}
-                        className="text-gray-700 hover:text-[#faa901]"
+                        className="text-white hover:text-[#faa901]"
                         >
                         <Edit className="w-4 h-4" />
                     </Button>
@@ -118,7 +118,7 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
                       <Button
                             size="sm"
                             variant="ghost"
-                            className="text-gray-700 hover:text-[#faa901]"
+                            className="text-white hover:text-[#faa901]"
                             onClick={() => saveBio(child)}
                             >
                             Save
@@ -127,7 +127,7 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
                         <Button
                             size="sm"
                             variant="ghost"
-                            className="text-gray-700 hover:text-[#faa901]"
+                            className="text-white hover:text-[#faa901]"
                             onClick={() => setEditingChildId(null)}
                             >
                             Cancel
