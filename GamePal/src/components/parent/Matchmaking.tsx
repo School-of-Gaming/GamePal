@@ -75,6 +75,17 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
 
   // For viewing child details
   const [viewChild, setViewChild] = useState<Child | null>(null);
+// For sending like to the interested matched child 
+  const [likedKids, setLikedKids] = useState<string[]>([]);
+  const toggleLike = (kidId: string) => {
+  setLikedKids(prev =>
+    prev.includes(kidId)
+      ? prev.filter(id => id !== kidId)
+      : [...prev, kidId]
+  );
+};
+
+
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
@@ -242,6 +253,14 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                                 >
                                     View Details
                                 </Button>
+                                <Button
+                                    size="sm"
+                                    className="mt-2 w-full bg-[#faa901] text-black hover:bg-[#f4b625]"
+                                    onClick={() => toggleLike(kid.id)}
+                                >
+                                    {likedKids.includes(kid.id) ? "Liked 💜" : "Like ❤️"}
+                                </Button>
+
                             </div>
                         ))}
                     </div>
