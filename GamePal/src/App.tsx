@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ParentDashboard } from "./components/parent/ParentDashboard";
 import { KidsManager } from "./components/parent/KidsManager";
 import { Matchmaking } from "./components/parent/Matchmaking";
-import type { Parent } from "./App";
+import type { Child, Parent } from "./App";
 
 export type Child = {
   id: string;

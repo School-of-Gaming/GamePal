@@ -1,6 +1,6 @@
 import type { Parent } from "../../App";
 import { ParentNav } from "./ParentNav";
-import { Users, Search, Heart, CheckCircle, Bell } from "lucide-react";
+import { Users, Search, Heart, CheckCircle, Bell, UserCog } from "lucide-react";
 
 type ParentDashboardProps = {
   parent: Parent;
@@ -59,6 +59,12 @@ export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking}
             <Bell className="w-8 h-8 mb-3 text-orange-600" />
             <h3 className="mb-2 text-xl font-semibold text-gray-800">Notifications</h3>
             <p className="text-gray-700">Stay updated on activities</p>
+          </div>
+
+          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+            <UserCog className="w-8 h-8 mb-3 text-gray-700" />
+            <h3 className="mb-2 text-xl font-semibold text-gray-800">Settings</h3>
+            <p className="text-gray-700">Manage your profile</p>
           </div>
         </div>
       </main>
