@@ -10,7 +10,7 @@ export function ParentNav({ parent }: ParentNavProps) {
         <div className="px-6 py-4 flex items-center gap-3">
           <div className="text-3xl">👨‍👩‍👧‍👦</div>
           <div>
-            <h2 className="text-purple-700 text-xl font-bold">GamePal</h2>
+            <h2 className="text-purple-700 text-xl font-bold">GamerPal</h2>
             <p className="text-gray-600 text-sm">Welcome, {parent.name}</p>
           </div>
         </div>
