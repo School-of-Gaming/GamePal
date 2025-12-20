@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; 
 import type { Parent, Child } from "../../App";
 import { ParentNav } from "./ParentNav";
 import { Button } from "../ui/button";
@@ -22,9 +22,8 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
     playType: "",
     theme: "",
   });
-  
 
-  // Dummy matched kids 
+  // Dummy matched kids
   const matchedKids: Child[] = [
     {
       id: "m1",
@@ -32,7 +31,6 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
       age: 8,
       avatar: "🐱",
       bio: "Love building in Minecraft and catching Pokémon!",
-      // Common with Taylor: Roblox, English, Gaming
       commonTags: ['Roblox', 'English', 'Gaming'],
       games: ['Minecraft', 'Roblox', 'Pokémon'],
       language: ['English', 'Spanish'],
@@ -42,50 +40,56 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
       theme: ["Fantasy"]
     },
     {
-    id: "m2",
-    name: 'Jordan',
-    age: 9,
-    avatar: '🦊',
-    bio: 'Looking for friends to play Animal Crossing with!',
-    // Common with Taylor: English, Gaming
-    commonTags: ['English', 'Gaming'],
-    games: ['Animal Crossing', 'Minecraft'],
-    language: ['English'],
-    hobbies: ['Collecting', 'Gaming'],
-    interests: ['Nature', 'Art'],
-    playType: ['Co-op', 'Casual'],
-    theme: ['horror']
-  },
-  {
-    id: "m3",
-    name: 'Sam',
-    age: 10,
-    avatar: '🐼',
-    bio: 'Nintendo fan! Love adventure games.',
-    // Common with Taylor: English, Gaming, Fantasy (Theme)
-    commonTags: ['English', 'Gaming', 'Fantasy'],
-    games: ['Mario', 'Zelda'],
-    language: ['English'],
-    hobbies: ['Gaming', 'Reading'],
-    interests: ['Fantasy', 'Adventure'],
-    playType: ['Single Player', 'Casual'],
-    theme: ["Fantasy"] 
-  }
+      id: "m2",
+      name: 'Jordan',
+      age: 9,
+      avatar: '🦊',
+      bio: 'Looking for friends to play Animal Crossing with!',
+      commonTags: ['English', 'Gaming'],
+      games: ['Animal Crossing', 'Minecraft'],
+      language: ['English'],
+      hobbies: ['Collecting', 'Gaming'],
+      interests: ['Nature', 'Art'],
+      playType: ['Co-op', 'Casual'],
+      theme: ['horror']
+    },
+    {
+      id: "m3",
+      name: 'Sam',
+      age: 10,
+      avatar: '🐼',
+      bio: 'Nintendo fan! Love adventure games.',
+      commonTags: ['English', 'Gaming', 'Fantasy'],
+      games: ['Mario', 'Zelda'],
+      language: ['English'],
+      hobbies: ['Gaming', 'Reading'],
+      interests: ['Fantasy', 'Adventure'],
+      playType: ['Single Player', 'Casual'],
+      theme: ["Fantasy"] 
+    }
   ];
 
-  // For viewing child details
+  // State
   const [viewChild, setViewChild] = useState<Child | null>(null);
-// For sending like to the interested matched child 
   const [likedKids, setLikedKids] = useState<string[]>([]);
+  const [toastMessage, setToastMessage] = useState("");
+
   const toggleLike = (kidId: string) => {
-  setLikedKids(prev =>
-    prev.includes(kidId)
-      ? prev.filter(id => id !== kidId)
-      : [...prev, kidId]
-  );
-};
+    const liked = likedKids.includes(kidId);
+    setLikedKids(prev =>
+      liked ? prev.filter(id => id !== kidId) : [...prev, kidId]
+    );
 
+    setToastMessage(
+      liked ? "Removed like" : `You liked ${matchedKids.find(k => k.id === kidId)?.name}!`
+    );
+  };
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(""), 3000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
@@ -113,7 +117,6 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-
             {/* Finding Matches For */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Finding matches for</label>
@@ -200,157 +203,155 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                 <option>Adventure</option>
             </select>
             </div>
-
-            
         </div>
         </div>
 
+        {/* MATCH RESULTS */}
+        <section className="mt-6">
+          <h2 className="text-xl font-semibold mb-3">
+            Found {matchedKids.length} potential matches for {selectedChild?.name}
+          </h2>
 
-        {/* ---------------- MATCH RESULTS ---------------- */}
-                <section className="mt-6">
-                    <h2 className="text-xl font-semibold mb-3">
-                        Found {matchedKids.length} potential matches for {selectedChild?.name}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {matchedKids.map((kid) => (
+              <div
+                key={kid.id}
+                className="p-4 pt-6 bg-white rounded-2xl shadow-lg relative border border-gray-100 hover:shadow-xl transition-shadow cursor-pointer"
+              >
+                <div className="flex items-center space-x-3 mb-2 text-black">
+                  <div className="text-4xl">{kid.avatar}</div>
+                  <div>
+                    <h3 className="text-lg font-bold">{kid.name}</h3>
+                    <p className="text-sm text-gray-500">Age {kid.age}</p>
+                  </div>
+                </div>
 
-                    </h2>
+                <p className="text-sm text-black mb-3 line-clamp-2 h-10">
+                  {kid.bio}
+                </p>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {matchedKids.map((kid) => (
-                            <div
-                                key={kid.id}
-                                className="p-4 pt-6 bg-white rounded-2xl shadow-lg relative border border-gray-100 hover:shadow-xl transition-shadow cursor-pointer"
-                            >
-                                <div className="flex items-center space-x-3 mb-2 text-black">
-                                    <div className="text-4xl">{kid.avatar}</div>
-                                    <div>
-                                        <h3 className="text-lg font-bold">{kid.name}</h3>
-                                        <p className="text-sm text-gray-500">Age {kid.age}</p>
-                                    </div>
-                                </div>
+                <p className="text-xs font-semibold text-gray-500 mb-2">Common with {selectedChild?.name}:</p>
+                <div className="flex flex-wrap gap-2">
+                  {kid.commonTags?.map((tag: string, index: number) => (
+                    <span
+                      key={index}
+                      className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
 
-                                {/* Bio/Description */}
-                                <p className="text-sm text-black mb-3 line-clamp-2 h-10">
-                                    {kid.bio}
-                                </p>
+                <Button
+                  size="sm"
+                  className="mt-4 w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={() => setViewChild(kid)}
+                >
+                  View Details
+                </Button>
+                <Button
+                  size="sm"
+                  className="mt-2 w-full bg-[#faa901] text-black hover:bg-[#f4b625]"
+                  onClick={() => toggleLike(kid.id)}
+                >
+                  {likedKids.includes(kid.id) ? "Liked 💜" : "Like ❤️"}
+                </Button>
 
-                                {/* Common Tags (Reflecting All Aspects with the selected child) */}
-                                <p className="text-xs font-semibold text-gray-500 mb-2">Common with {selectedChild?.name}:</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {kid.commonTags?.map((tag: string, index: number) => (
-                                        <span
-                                            key={index}
-                                            className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
+              </div>
+            ))}
+          </div>
+        </section>
 
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
+        {/* VIEW DETAILS PANEL */}
+        {viewChild && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl relative">
+              {/* Header */}
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="text-6xl">{viewChild.avatar}</div>
+                <div>
+                  <h2 className="text-2xl font-bold text-black">{viewChild.name}</h2>
+                  <p className="text-base text-gray-500">Age: {viewChild.age}</p>
+                </div>
+              </div>
 
-                               <Button
-                                    size="sm"
-                                    className="mt-4 w-full bg-purple-600 hover:bg-purple-700"
-                                    onClick={() => setViewChild(kid)}
-                                >
-                                    View Details
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    className="mt-2 w-full bg-[#faa901] text-black hover:bg-[#f4b625]"
-                                    onClick={() => toggleLike(kid.id)}
-                                >
-                                    {likedKids.includes(kid.id) ? "Liked 💜" : "Like ❤️"}
-                                </Button>
+              {/* About Section */}
+              <h3 className="text-lg font-bold mb-1 border-b pb-1 text-black">About</h3>
+              <p className="text-sm text-gray-700 mb-4">{viewChild.bio}</p>
 
-                            </div>
-                        ))}
-                    </div>
-                </section>
+              {/* Interest Sections */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm w-full text-black">Games:</strong>
+                  {viewChild.games.map((item, index) => (
+                    <span key={index} className="text-xs bg-purple-100 text-purple-800 font-medium px-2 py-1 rounded-md">
+                      {item}
+                    </span>
+                  ))}
+                </div>
 
-                {/* ---------------- VIEW DETAILS PANEL ---------------- */}
-                {viewChild && (
-                    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl relative">
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm w-full text-black">Languages:</strong>
+                  {viewChild.language.map((item, index) => (
+                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm w-full text-black">Hobbies:</strong>
+                  {viewChild.hobbies.map((item, index) => (
+                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
+                      {item}
+                    </span>
+                  ))}
+                </div>
 
-                            {/* Header */}
-                            <div className="flex items-center space-x-4 mb-4">
-                                <div className="text-6xl">{viewChild.avatar}</div>
-                                <div>
-                                    <h2 className="text-2xl font-bold text-black">{viewChild.name}</h2>
-                                    <p className="text-base text-gray-500">Age: {viewChild.age}</p>
-                                </div>
-                            </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm w-full text-black">General Interests:</strong>
+                  {viewChild.interests.map((item, index) => (
+                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
+                      {item}
+                    </span>
+                  ))}
+                </div>
 
-                            {/* About Section */}
-                            <h3 className="text-lg font-bold mb-1 border-b pb-1 text-black">About</h3>
-                            <p className="text-sm text-gray-700 mb-4">{viewChild.bio}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm w-full text-black">Play Type:</strong>
+                  {viewChild.playType.map((item, index) => (
+                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
+                      {item}
+                    </span>
+                  ))}
+                </div>
 
-                            {/* Interest Sections */}
-                            <div className="space-y-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <strong className="text-sm w-full text-black">Games:</strong>
-                                    {viewChild.games.map((item, index) => (
-                                        <span key={index} className="text-xs bg-purple-100 text-purple-800 font-medium px-2 py-1 rounded-md">
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm w-full text-black">Theme:</strong>
+                  {viewChild.theme.map((item, index) => (
+                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <strong className="text-sm w-full text-black">Languages:</strong>
-                                    {viewChild.language.map((item, index) => (
-                                        <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
-                                
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <strong className="text-sm w-full text-black">Hobbies:</strong>
-                                    {viewChild.hobbies.map((item, index) => (
-                                        <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
+              <Button
+                  className="mt-6 w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={() => setViewChild(null)}
+              >
+                  Close
+              </Button>
+            </div>
+          </div>
+        )}
 
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <strong className="text-sm w-full text-black">General Interests:</strong>
-                                    {viewChild.interests.map((item, index) => (
-                                        <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <strong className="text-sm w-full text-black">Play Type:</strong>
-                                    {viewChild.playType.map((item, index) => (
-                                        <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <strong className="text-sm w-full text-black">Theme:</strong>
-                                    {viewChild.theme.map((item, index) => (
-                                        <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-
-                            <Button
-                                className="mt-6 w-full bg-purple-600 hover:bg-purple-700"
-                                onClick={() => setViewChild(null)}
-                            >
-                                Close
-                            </Button>
-                        </div>
-                    </div>
-                )}
+        {/* TOAST NOTIFICATION */}
+        {toastMessage && (
+          <div className="fixed top-6 right-6 bg-purple-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+            {toastMessage}
+          </div>
+        )}
       </main>
     </div>
   );

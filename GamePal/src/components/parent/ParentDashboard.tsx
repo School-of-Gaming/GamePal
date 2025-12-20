@@ -6,9 +6,10 @@ type ParentDashboardProps = {
   parent: Parent;
   onGoToKidsManager: () => void;
   onGoToMatchmaking: () => void;
+  onGoToPotentialMatches: () => void;
 };
 
-export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking}: ParentDashboardProps) {
+export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking, onGoToPotentialMatches,}: ParentDashboardProps) {
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
       <ParentNav parent={parent} />
@@ -43,11 +44,15 @@ export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking}
             <p className="text-gray-700">Browse potential game buddies</p>
           </div>
 
-          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+          <div
+            onClick={onGoToPotentialMatches}
+            className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer"
+          >
             <Heart className="w-8 h-8 mb-3 text-pink-600" />
             <h3 className="mb-2 text-xl font-semibold text-gray-800">Potential Matches</h3>
-            <p className="text-gray-700">Review and chat with parents</p>
+            <p className="text-gray-700">Review compatible playmates</p>
           </div>
+
 
           <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
             <CheckCircle className="w-8 h-8 mb-3 text-green-600" />

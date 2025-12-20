@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ParentDashboard } from "./components/parent/ParentDashboard";
 import { KidsManager } from "./components/parent/KidsManager";
 import { Matchmaking } from "./components/parent/Matchmaking";
+import { PotentialMatches } from "./components/parent/PotentialMatches";
 import type { Child, Parent } from "./App";
 
 export type Child = {
@@ -49,7 +50,7 @@ export default function App() {
     ],
   });
 
-  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids" | "matchmaking">("dashboard");
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids" | "matchmaking" | "potential-matches">("dashboard");
 
   return (
     <>
@@ -58,6 +59,7 @@ export default function App() {
           parent={parent}
           onGoToKidsManager={() => setCurrentPage("kids")}
           onGoToMatchmaking={() => setCurrentPage("matchmaking")}
+          onGoToPotentialMatches={() => setCurrentPage("potential-matches")}
         />
       )}
 
@@ -75,6 +77,14 @@ export default function App() {
           onBack={() => setCurrentPage("dashboard")}
         />
       )}
+
+      {currentPage === "potential-matches" && (
+        <PotentialMatches
+          parent={parent}
+          onBack={() => setCurrentPage("dashboard")}
+        />
+      )}
+
     </>
   );
 }
