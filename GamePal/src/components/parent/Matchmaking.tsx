@@ -91,6 +91,10 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
+  const likedProfiles = matchedKids.filter(kid =>
+    likedKids.includes(kid.id)
+  );
+
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
       <ParentNav parent={parent} />
@@ -205,6 +209,42 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
             </div>
         </div>
         </div>
+
+        {/* LIKED PROFILES */}
+        {likedProfiles.length > 0 && (
+          <div className="mb-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">
+              💜 Profiles You Liked
+            </h2>
+
+            <div className="flex flex-wrap gap-4">
+              {likedProfiles.map(kid => (
+                <div
+                  key={kid.id}
+                  className="flex items-center justify-between gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border"
+                >
+                  <div
+                    onClick={() => setViewChild(kid)}
+                    className="flex items-center gap-3 cursor-pointer"
+                  >
+                    <span className="text-3xl">{kid.avatar}</span>
+                    <div>
+                      <p className="font-bold text-gray-900">{kid.name}</p>
+                      <p className="text-sm text-gray-500">Age {kid.age}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => toggleLike(kid.id)}
+                    className="text-sm text-red-500 font-semibold hover:underline"
+                  >
+                    Unlike
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* MATCH RESULTS */}
         <section className="mt-6">
