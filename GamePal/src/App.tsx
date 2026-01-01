@@ -4,6 +4,7 @@ import { KidsManager } from "./components/parent/KidsManager";
 import { Matchmaking } from "./components/parent/Matchmaking";
 import { PotentialMatches } from "./components/parent/PotentialMatches";
 import { ApprovedMatches } from "./components/parent/ApprovedMatches";
+import { Notifications } from "./components/parent/Notifications";
 import type { Child, Parent } from "./App";
 
 export type Child = {
@@ -51,7 +52,7 @@ export default function App() {
     ],
   });
 
-  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids" | "matchmaking" | "potential-matches" | "approved-matches">("dashboard");
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids" | "matchmaking" | "potential-matches" | "approved-matches" | "notifications">("dashboard");
 
   return (
     <>
@@ -62,6 +63,7 @@ export default function App() {
           onGoToMatchmaking={() => setCurrentPage("matchmaking")}
           onGoToPotentialMatches={() => setCurrentPage("potential-matches")}
           onGoToApprovedMatches={() => setCurrentPage("approved-matches")}
+          onGoToNotifications={() => setCurrentPage("notifications")}
         />
       )}
 
@@ -93,6 +95,14 @@ export default function App() {
           onBack={() => setCurrentPage("dashboard")}
         />
       )}
+
+      {currentPage === "notifications" && (
+        <Notifications 
+          parent={parent}
+          onBack={() => setCurrentPage("dashboard")} 
+        />
+      )}
+
 
 
     </>

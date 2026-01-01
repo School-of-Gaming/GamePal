@@ -8,9 +8,10 @@ type ParentDashboardProps = {
   onGoToMatchmaking: () => void;
   onGoToPotentialMatches: () => void;
   onGoToApprovedMatches: () => void;
+  onGoToNotifications: () => void;
 };
 
-export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking, onGoToPotentialMatches, onGoToApprovedMatches,}: ParentDashboardProps) {
+export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking, onGoToPotentialMatches, onGoToApprovedMatches, onGoToNotifications,}: ParentDashboardProps) {
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
       <ParentNav parent={parent} />
@@ -68,7 +69,9 @@ export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking,
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+          <div 
+           onClick={onGoToNotifications}
+           className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
             <Bell className="w-8 h-8 mb-3 text-orange-600" />
             <h3 className="mb-2 text-xl font-semibold text-gray-800">Notifications</h3>
             <p className="text-gray-700">Stay updated on activities</p>
