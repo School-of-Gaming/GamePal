@@ -5,6 +5,7 @@ import { Matchmaking } from "./components/parent/Matchmaking";
 import { PotentialMatches } from "./components/parent/PotentialMatches";
 import { ApprovedMatches } from "./components/parent/ApprovedMatches";
 import { Notifications } from "./components/parent/Notifications";
+import { ProfileSettings } from "./components/parent/ProfileSettings";
 import type { Child, Parent } from "./App";
 
 export type Child = {
@@ -33,8 +34,8 @@ export type Parent = {
 export default function App() {
   const [parent, setParent] = useState<Parent>({
     id: "p1",
-    name: "Alice",
-    email: "alice@example.com",
+    name: "Alice Smith",
+    email: "alice.smith@example.com",
     children: [
       {
         id: "c1",
@@ -52,7 +53,7 @@ export default function App() {
     ],
   });
 
-  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids" | "matchmaking" | "potential-matches" | "approved-matches" | "notifications">("dashboard");
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "kids" | "matchmaking" | "potential-matches" | "approved-matches" | "notifications" | "settings">("dashboard");
 
   return (
     <>
@@ -64,6 +65,7 @@ export default function App() {
           onGoToPotentialMatches={() => setCurrentPage("potential-matches")}
           onGoToApprovedMatches={() => setCurrentPage("approved-matches")}
           onGoToNotifications={() => setCurrentPage("notifications")}
+          onGoToSettings={() => setCurrentPage("settings")}
         />
       )}
 
@@ -102,6 +104,14 @@ export default function App() {
           onBack={() => setCurrentPage("dashboard")} 
         />
       )}
+
+      {currentPage === "settings" && (
+        <ProfileSettings
+          parent={parent}
+          onBack={() => setCurrentPage("dashboard")}
+        />
+      )}
+
 
 
 

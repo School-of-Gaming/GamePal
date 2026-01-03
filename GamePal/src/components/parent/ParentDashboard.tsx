@@ -9,9 +9,10 @@ type ParentDashboardProps = {
   onGoToPotentialMatches: () => void;
   onGoToApprovedMatches: () => void;
   onGoToNotifications: () => void;
+  onGoToSettings: () => void;
 };
 
-export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking, onGoToPotentialMatches, onGoToApprovedMatches, onGoToNotifications,}: ParentDashboardProps) {
+export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking, onGoToPotentialMatches, onGoToApprovedMatches, onGoToNotifications,  onGoToSettings,}: ParentDashboardProps) {
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
       <ParentNav parent={parent} />
@@ -77,7 +78,9 @@ export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking,
             <p className="text-gray-700">Stay updated on activities</p>
           </div>
 
-          <div className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
+          <div 
+            onClick={onGoToSettings}
+            className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer">
             <UserCog className="w-8 h-8 mb-3 text-gray-700" />
             <h3 className="mb-2 text-xl font-semibold text-gray-800">Settings</h3>
             <p className="text-gray-700">Manage your profile</p>
