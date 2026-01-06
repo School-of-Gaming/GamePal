@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Calendar, Info, X } from "lucide-react";
 import { Button } from "../ui/button";
-import { ParentNav } from "./ParentNav";
+import { ParentNav } from "./Nav";
 import type { Parent } from "../../App";
+import type { Child } from "../../App";
+import { ChildDetailsModal } from "../child/ChildDetailsModal";
 
 type Match = {
   id: string;
@@ -19,6 +21,7 @@ type Match = {
   parentName: string;
   parentEmail: string;
   commonTags: string[];
+  availability: string[];
 };
 
 type ApprovedMatchesProps = {
@@ -43,6 +46,7 @@ export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
       parentName: "Lisa Johnson",
       parentEmail: "lisa.johnson@email.com",
       commonTags: ["Minecraft", "English", "Gaming", "Co-op"],
+      availability: ["Morning", "Afternoon"],
     },
     {
       id: "2",
@@ -59,10 +63,11 @@ export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
       parentName: "John Smith",
       parentEmail: "john.smith@email.com",
       commonTags: ["Roblox", "Fantasy", "Creative", "English"],
+      availability: ["Morning", "Afternoon"],
     },
   ]);
 
-const [viewChild, setViewChild] = useState<Match | null>(null);
+const [viewChild, setViewChild] = useState<Child | null>(null);
 
   // Modal + scheduling state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -119,6 +124,21 @@ const [viewChild, setViewChild] = useState<Match | null>(null);
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   };
 
+  const matchToChild = (match: Match): Child => ({
+  id: match.id,
+  name: match.childName,
+  age: match.childAge,
+  avatar: match.avatar,
+  bio: match.bio ?? "",
+  games: match.games ?? [],
+  language: match.language ?? [],
+  hobbies: match.hobbies ?? [],
+  interests: match.interests ?? [],
+  playType: match.playType ?? [],
+  theme: match.theme ?? [],
+  availability: match.availability ?? [],
+});
+
   return (
     <div className="flex flex-col h-screen w-screen bg-white relative">
       <ParentNav parent={parent} />
@@ -152,13 +172,14 @@ const [viewChild, setViewChild] = useState<Match | null>(null);
           <div className="bg-[#FFFCEB] border border-[#FFF5B8] rounded-xl p-5 flex gap-4">
             <Info className="w-5 h-5 text-[#857000] mt-1" />
             <div>
-              <h3 className="text-lg font-bold text-[#857000] mb-1">
-                You’re Connected 🎉
+              <h3 className="text-lg font-bold text-[#857000] mb-1 flex items-center gap-2">
+                <span className="text-xl">🦉</span> You’re Connected 🎉
               </h3>
               <p className="text-sm text-[#857000]/80 font-medium">
-                You can now contact parents and schedule meetups.
+                You can schedule a meeting with the child's guardian. Always meet with the guardian together with their child before pursuing further interactions. 
               </p>
             </div>
+
           </div>
         </div>
 
@@ -226,7 +247,7 @@ const [viewChild, setViewChild] = useState<Match | null>(null);
                 <div className="flex flex-col gap-3 min-w-[200px]">
                   <Button
                     className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-5 font-bold flex gap-2"
-                    onClick={() => setViewChild(match)} 
+                    onClick={() => setViewChild(matchToChild(match))} 
                     >
                     View Details
                     </Button>
@@ -362,103 +383,12 @@ const [viewChild, setViewChild] = useState<Match | null>(null);
 
         {/* VIEW DETAILS PANEL */}
         {viewChild && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl relative">
-              {/* Header */}
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="text-6xl">{viewChild.avatar}</div>
-                <div>
-                  <h2 className="text-2xl font-bold text-black">{viewChild.childName}</h2>
-                  <p className="text-base text-gray-500">Age: {viewChild.childAge}</p>
-                </div>
-              </div>
-
-              {/* About Section */}
-              {viewChild.bio && (
-                <>
-                  <h3 className="text-lg font-bold mb-1 border-b pb-1 text-black">About</h3>
-                  <p className="text-sm text-gray-700 mb-4">{viewChild.bio}</p>
-                </>
-              )}
-
-              {/* Interest Sections */}
-              <div className="space-y-3">
-                {viewChild.games && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm w-full text-black">Games:</strong>
-                    {viewChild.games.map((item, index) => (
-                      <span key={index} className="text-xs bg-purple-100 text-purple-800 font-medium px-2 py-1 rounded-md">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {viewChild.language && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm w-full text-black">Languages:</strong>
-                    {viewChild.language.map((item, index) => (
-                      <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {viewChild.hobbies && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm w-full text-black">Hobbies:</strong>
-                    {viewChild.hobbies.map((item, index) => (
-                      <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {viewChild.interests && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm w-full text-black">General Interests:</strong>
-                    {viewChild.interests.map((item, index) => (
-                      <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {viewChild.playType && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm w-full text-black">Play Type:</strong>
-                    {viewChild.playType.map((item, index) => (
-                      <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {viewChild.theme && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm w-full text-black">Theme:</strong>
-                    {viewChild.theme.map((item, index) => (
-                      <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Button
-                className="mt-6 w-full bg-purple-600 hover:bg-purple-700"
-                onClick={() => setViewChild(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
+          <ChildDetailsModal
+            child={viewChild}
+            onClose={() => setViewChild(null)}
+          />
         )}
+
 
       </main>
     </div>

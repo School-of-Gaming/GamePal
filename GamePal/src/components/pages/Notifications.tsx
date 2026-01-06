@@ -1,5 +1,5 @@
 import { Button } from "../ui/button";
-import { ParentNav } from "./ParentNav";
+import { ParentNav } from "./Nav";
 import { Heart, UserPlus, CheckCircle } from "lucide-react";
 import type { Parent } from "../../App";
 

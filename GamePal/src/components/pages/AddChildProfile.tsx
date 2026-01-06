@@ -22,6 +22,7 @@ const emptyChild: Child = {
   interests: [],
   playType: [],
   theme: [],
+  availability: [],
 };
 
 // --- Component ---

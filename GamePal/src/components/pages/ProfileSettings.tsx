@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { User, Lock, ShieldCheck, AlertTriangle, Save, RefreshCw, Mail, CheckCircle2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { ParentNav } from "./ParentNav";
+import { ParentNav } from "./Nav";
 import type { Parent } from "../../App";
 
 type ProfileSettingsProps = {
@@ -223,7 +223,7 @@ export function ProfileSettings({ parent, onBack }: ProfileSettingsProps) {
                 <h3 className="font-bold">Your Information is Safe</h3>
               </div>
               <ul className="text-sm text-blue-800 space-y-2">
-                <li>• Email shared only with matched parents</li>
+                <li>• Email shared only with matched guardians</li>
                 <li>• No third-party data sharing</li>
                 <li>• Secure & encrypted data</li>
               </ul>
@@ -235,8 +235,9 @@ export function ProfileSettings({ parent, onBack }: ProfileSettingsProps) {
                 <h3 className="font-bold">Important Reminders</h3>
               </div>
               <ul className="text-sm text-yellow-800 space-y-2">
-                <li>• Verify parents before meetings</li>
+                <li>• Verify guardians before meetings</li>
                 <li>• Monitor your child's interactions</li>
+                <li>• If inactive for a month, your account will be automatically deleted from the system </li>
               </ul>
             </div>
           </div>

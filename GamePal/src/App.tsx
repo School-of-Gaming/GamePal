@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { ParentDashboard } from "./components/parent/ParentDashboard";
-import { KidsManager } from "./components/parent/KidsManager";
-import { Matchmaking } from "./components/parent/Matchmaking";
-import { PotentialMatches } from "./components/parent/PotentialMatches";
-import { ApprovedMatches } from "./components/parent/ApprovedMatches";
-import { Notifications } from "./components/parent/Notifications";
-import { ProfileSettings } from "./components/parent/ProfileSettings";
+import { ParentDashboard } from "./components/pages/ParentDashboard";
+import { KidsManager } from "./components/pages/KidsManager";
+import { Matchmaking } from "./components/pages/Matchmaking";
+import { PotentialMatches } from "./components/pages/PotentialMatches";
+import { ApprovedMatches } from "./components/pages/ApprovedMatches";
+import { Notifications } from "./components/pages/Notifications";
+import { ProfileSettings } from "./components/pages/ProfileSettings";
 import type { Child, Parent } from "./App";
 
 export type Child = {
@@ -21,6 +21,7 @@ export type Child = {
   interests: string[];
   playType: string[];
   theme: string[];
+  availability: string[];
 };
 
 export type Parent = {
@@ -49,6 +50,7 @@ export default function App() {
         interests: ['Competition', 'Technology'],
         playType: ['Competitive'],
         theme: ["Fantasy"],
+        availability: ['Weekdays (After School)' , 'Short Sessions'],
       },
     ],
   });

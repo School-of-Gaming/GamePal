@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"; 
 import type { Parent, Child } from "../../App";
-import { ParentNav } from "./ParentNav";
+import { ParentNav } from "./Nav";
 import { Button } from "../ui/button";
+import { ChildDetailsModal } from "../child/ChildDetailsModal";
 
 type MatchmakingProps = {
   parent: Parent;
@@ -21,6 +22,7 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
     interest: "",
     playType: "",
     theme: "",
+    availability: "",
   });
 
   // Dummy matched kids
@@ -31,13 +33,14 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
       age: 8,
       avatar: "🐱",
       bio: "Love building in Minecraft and catching Pokémon!",
-      commonTags: ['Roblox', 'English', 'Gaming'],
+      commonTags: ['Roblox', 'English', 'Gaming',  'Short Sessions'],
       games: ['Minecraft', 'Roblox', 'Pokémon'],
       language: ['English', 'Spanish'],
       hobbies: ['Drawing', 'Gaming', 'Reading'],
       interests: ['Adventure', 'Animals', 'Technology'],
       playType: ['Co-op', 'Creative', 'Casual'],
-      theme: ["Fantasy"]
+      theme: ["Fantasy"],
+      availability: ["Short Sessions", "Weekends"],
     },
     {
       id: "m2",
@@ -45,13 +48,14 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
       age: 9,
       avatar: '🦊',
       bio: 'Looking for friends to play Animal Crossing with!',
-      commonTags: ['English', 'Gaming'],
+      commonTags: ['English', 'Gaming', 'Weekdays (After School)' ],
       games: ['Animal Crossing', 'Minecraft'],
       language: ['English'],
       hobbies: ['Collecting', 'Gaming'],
       interests: ['Nature', 'Art'],
       playType: ['Co-op', 'Casual'],
-      theme: ['horror']
+      theme: ['horror'],
+      availability: ["Weekdays (After School)", "Evening"],
     },
     {
       id: "m3",
@@ -65,7 +69,8 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
       hobbies: ['Gaming', 'Reading'],
       interests: ['Fantasy', 'Adventure'],
       playType: ['Single Player', 'Casual'],
-      theme: ["Fantasy"] 
+      theme: ["Fantasy"], 
+      availability: ["Afternoon"],
     }
   ];
 
@@ -207,6 +212,26 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                 <option>Adventure</option>
             </select>
             </div>
+
+            {/* Availability */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700">
+                Availability
+              </label>
+              <select
+                className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500"
+              >
+                <option>Any Time</option>
+                <option>Weekdays (After School)</option>
+                <option>Weekdays (Evening)</option>
+                <option>Weekends</option>
+                <option>Morning</option>
+                <option>Afternoon</option>
+                <option>Evening</option>
+                <option>Flexible</option>
+              </select>
+            </div>
+
         </div>
         </div>
 
@@ -304,87 +329,12 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
 
         {/* VIEW DETAILS PANEL */}
         {viewChild && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl relative">
-              {/* Header */}
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="text-6xl">{viewChild.avatar}</div>
-                <div>
-                  <h2 className="text-2xl font-bold text-black">{viewChild.name}</h2>
-                  <p className="text-base text-gray-500">Age: {viewChild.age}</p>
-                </div>
-              </div>
-
-              {/* About Section */}
-              <h3 className="text-lg font-bold mb-1 border-b pb-1 text-black">About</h3>
-              <p className="text-sm text-gray-700 mb-4">{viewChild.bio}</p>
-
-              {/* Interest Sections */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-sm w-full text-black">Games:</strong>
-                  {viewChild.games.map((item, index) => (
-                    <span key={index} className="text-xs bg-purple-100 text-purple-800 font-medium px-2 py-1 rounded-md">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-sm w-full text-black">Languages:</strong>
-                  {viewChild.language.map((item, index) => (
-                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-sm w-full text-black">Hobbies:</strong>
-                  {viewChild.hobbies.map((item, index) => (
-                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-sm w-full text-black">General Interests:</strong>
-                  {viewChild.interests.map((item, index) => (
-                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-sm w-full text-black">Play Type:</strong>
-                  {viewChild.playType.map((item, index) => (
-                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-sm w-full text-black">Theme:</strong>
-                  {viewChild.theme.map((item, index) => (
-                    <span key={index} className="text-xs bg-gray-100 text-gray-800 font-medium px-2 py-1 rounded-md">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <Button
-                  className="mt-6 w-full bg-purple-600 hover:bg-purple-700"
-                  onClick={() => setViewChild(null)}
-              >
-                  Close
-              </Button>
-            </div>
-          </div>
+          <ChildDetailsModal
+            child={viewChild}
+            onClose={() => setViewChild(null)}
+          />
         )}
+
 
         {/* TOAST NOTIFICATION */}
         {toastMessage && (

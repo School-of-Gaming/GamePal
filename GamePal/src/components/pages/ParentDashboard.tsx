@@ -1,5 +1,5 @@
 import type { Parent } from "../../App";
-import { ParentNav } from "./ParentNav";
+import { ParentNav } from "./Nav";
 import { Users, Search, Heart, CheckCircle, Bell, UserCog } from "lucide-react";
 
 type ParentDashboardProps = {

@@ -43,6 +43,9 @@ const gameThemeOptions = [
 
 const avatarOptions = ["🧒", "🦁", "🦄", "🐶", "🐱", "🐼", "🐸", "🐵", "🐰", "👾", "🤖", "🧙‍♂️"];
 
+const availabilityOptions = [ "Weekdays (After School)", "Weekdays (Evening)", "Weekends", "Morning", "Afternoon", "Evening", "Flexible", "Short Sessions"];
+
+
 // Reusable Button/Tag Component
 const SelectableTag = ({
   label,
@@ -183,6 +186,13 @@ export function EditChildProfile({ child, onClose, onSave }: EditChildProfilePro
       case "Profile":
         return (
           <div className="space-y-6">
+             {/* WARNING */}
+              <div className="bg-red-100 border-l-4 border-red-600 text-red-800 p-4 rounded-lg mb-4">
+                <p className="font-bold">⚠️ Important Safety Warning</p>
+                <p className="text-sm">
+                  Never include personal information such as your home address, phone number, school name, or other identifying details in this section. Sharing such information could put you at serious risk. Keep your profile safe and general!
+                </p>
+              </div>
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">
                 About Me
@@ -308,6 +318,29 @@ export function EditChildProfile({ child, onClose, onSave }: EditChildProfilePro
                 ))}
               </div>
             </div>
+
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-3">
+                Availability ⏰ (Selected: {editedChild.availability?.length || 0})
+              </h4>
+
+              <div className="grid grid-cols-2 gap-3">
+                {availabilityOptions.map((slot) => (
+                  <SelectableTag
+                    key={slot}
+                    label={slot}
+                    isSelected={editedChild.availability?.includes(slot)}
+                    onClick={() =>
+                      handleTextChange(
+                        "availability",
+                        toggleSelection(editedChild.availability || [], slot)
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+
           </div>
         );
     }

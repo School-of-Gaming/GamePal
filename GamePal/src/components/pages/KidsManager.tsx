@@ -1,5 +1,5 @@
 import type { Parent, Child } from "../../App"; 
-import { ParentNav } from "./ParentNav";
+import { ParentNav } from "./Nav";
 import { Button } from "../ui/button";
 import { Edit, Trash2, Plus } from "lucide-react"; 
 import { useState } from "react";
@@ -211,6 +211,24 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
                       ))}
                     </div>
                   )}
+
+                  {/* Availability / Timezone Tags */}
+                  {child.availability?.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="font-semibold text-sm text-gray-600">
+                        Availability:
+                      </span>
+                      {child.availability.map((slot) => (
+                        <span
+                          key={slot}
+                          className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs font-medium"
+                        >
+                          {slot}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                 </div>
 
               </div>
