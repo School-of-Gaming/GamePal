@@ -1,5 +1,5 @@
 import type { Parent, Child } from "../../App"; 
-import { ParentNav } from "./Nav";
+import { ParentNav } from "../Nav";
 import { Button } from "../ui/button";
 import { Edit, Trash2, Plus } from "lucide-react"; 
 import { useState } from "react";

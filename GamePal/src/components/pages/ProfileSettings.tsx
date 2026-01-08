@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { User, Lock, ShieldCheck, AlertTriangle, Save, RefreshCw, Mail, CheckCircle2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { ParentNav } from "./Nav";
+import { ParentNav } from "../Nav";
 import type { Parent } from "../../App";
 
 type ProfileSettingsProps = {

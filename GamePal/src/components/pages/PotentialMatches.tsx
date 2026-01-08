@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, X, Info } from "lucide-react";
 import { Button } from "../ui/button";
-import { ParentNav } from "./Nav";
+import { ParentNav } from "../Nav";
 import type { Parent } from "../../App";
 import type { Child } from "../../App";
 import { ChildDetailsModal } from "../child/ChildDetailsModal";

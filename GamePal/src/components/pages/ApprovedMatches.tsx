@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Calendar, Info, X } from "lucide-react";
 import { Button } from "../ui/button";
-import { ParentNav } from "./Nav";
+import { ParentNav } from "../Nav";
 import type { Parent } from "../../App";
 import type { Child } from "../../App";
 import { ChildDetailsModal } from "../child/ChildDetailsModal";
@@ -141,7 +141,10 @@ const [viewChild, setViewChild] = useState<Child | null>(null);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white relative">
-      <ParentNav parent={parent} />
+      <ParentNav parent={parent}
+      onLogout={() => {
+      window.location.reload();
+      }} />
 
       {notification && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#faa901] text-black px-6 py-3 rounded-xl shadow-lg">

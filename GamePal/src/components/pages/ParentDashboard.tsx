@@ -1,5 +1,5 @@
 import type { Parent } from "../../App";
-import { ParentNav } from "./Nav";
+import { ParentNav } from "../Nav";
 import { Users, Search, Heart, CheckCircle, Bell, UserCog } from "lucide-react";
 
 type ParentDashboardProps = {
@@ -10,12 +10,13 @@ type ParentDashboardProps = {
   onGoToApprovedMatches: () => void;
   onGoToNotifications: () => void;
   onGoToSettings: () => void;
+  onLogout: () => void;
 };
 
-export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking, onGoToPotentialMatches, onGoToApprovedMatches, onGoToNotifications,  onGoToSettings,}: ParentDashboardProps) {
+export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking, onGoToPotentialMatches, onGoToApprovedMatches, onGoToNotifications,  onGoToSettings, onLogout,}: ParentDashboardProps) {
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
-      <ParentNav parent={parent} />
+      <ParentNav parent={parent} onLogout={onLogout}/>
 
       <main className="flex-1 w-full p-6 overflow-auto">
         <div>

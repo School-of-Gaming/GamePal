@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"; 
 import type { Parent, Child } from "../../App";
-import { ParentNav } from "./Nav";
+import { ParentNav } from "../Nav";
 import { Button } from "../ui/button";
 import { ChildDetailsModal } from "../child/ChildDetailsModal";
 
