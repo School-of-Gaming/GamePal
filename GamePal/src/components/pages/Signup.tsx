@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import type { Parent } from "../../App";
+import { signupWithPassword } from "../../supabase/auth";
+import { supabase } from "../../supabase/client";
 
 type SignupProps = {
   onSignup: (parent: Parent) => void;
@@ -17,24 +19,56 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
   const [country, setCountry] = useState("");
   const [age, setAge] = useState<number | "">("");
   const [showUnderage, setShowUnderage] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (typeof age === "number" && age < 18) {
-      setShowUnderage(true);
-      return;
-    }
+  if (typeof age === "number" && age < 18) {
+    setShowUnderage(true);
+    return;
+  }
 
-    const parent: Parent = {
-      id: "p" + Date.now(),
-      name,
-      email,
-      children: [],
-    };
+  setLoading(true);
 
-    onSignup(parent);
+  const { data, error } = await signupWithPassword(email, password);
+
+  if (error) {
+    alert(error.message);
+    setLoading(false);
+    return;
+  }
+
+  // Save parent profile to Supabase table
+  const parentProfile = {
+    id: data.user?.id,
+    name,
+    email,
+    children: [],
+    country,
+    age,
   };
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .insert(parentProfile);
+
+  if (profileError) {
+    alert(profileError.message);
+    setLoading(false);
+    return;
+  }
+
+  setLoading(false);
+
+  onSignup({
+    id: parentProfile.id!,
+    name: parentProfile.name,
+    email: parentProfile.email,
+    children: [],
+  });
+};
+
 
   return (
     <>
@@ -51,7 +85,7 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
           placeholder="Full Name"
           className="border rounded-md p-2"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={e => setName(e.target.value)}
           required
         />
 
@@ -60,7 +94,7 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
           placeholder="Email"
           className="border rounded-md p-2"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           required
         />
 
@@ -69,14 +103,14 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
           placeholder="Password"
           className="border rounded-md p-2"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           required
         />
 
         <select
           className="border rounded-md p-2"
           value={country}
-          onChange={(e) => setCountry(e.target.value)}
+          onChange={e => setCountry(e.target.value)}
           required
         >
           <option value="">Select your country</option>
@@ -98,8 +132,8 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
           required
         />
 
-        <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-          Create Account
+        <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white" disabled={loading}>
+          {loading ? "Creating Account..." : "Create Account"}
         </Button>
 
         <p className="text-sm text-gray-500 text-center">

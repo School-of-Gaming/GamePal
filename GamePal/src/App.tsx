@@ -9,6 +9,8 @@ import { ProfileSettings } from "./components/pages/ProfileSettings";
 import { Home } from "./components/pages/Home";
 import { Login } from "./components/pages/Login";
 import { Signup } from "./components/pages/Signup";
+import { supabase } from './supabase/client';
+import { getCurrentUser } from './supabase/auth';
 
 // ---------------- Types ----------------
 export type Child = {
@@ -34,29 +36,6 @@ export type Parent = {
   children: Child[];
 };
 
-// ---------------- Demo Parent ----------------
-const demoParent: Parent = {
-  id: "p1",
-  name: "Alice Smith",
-  email: "alice.smith@example.com",
-  children: [
-    {
-      id: "c1",
-      name: "Taylor",
-      age: 8,
-      avatar: "🦁",
-      bio: "Competitive gamer who loves team play!",
-      games: ["Roblox", "Fortnite"],
-      language: ["English"],
-      hobbies: ["Sports", "Gaming"],
-      interests: ["Competition", "Technology"],
-      playType: ["Competitive"],
-      theme: ["Fantasy"],
-      availability: ["Weekdays (After School)", "Short Sessions"],
-    },
-  ],
-};
-
 // ---------------- App Component ----------------
 export default function App() {
   const [parent, setParent] = useState<Parent | null>(null);
@@ -74,17 +53,41 @@ export default function App() {
   >("home");
 
   // ---------------- Handlers ----------------
-  const handleLogin = (parentData?: Parent) => {
-    setParent(parentData || demoParent); 
-    setCurrentPage("dashboard");
+ const handleLogin = async (parentData?: Parent) => {
+    if (!parentData) {
+      const user = await getCurrentUser();
+      if (!user) return;
+
+      // Fetch profile from Supabase
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile) return;
+
+      setParent({
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        children: profile.children || [],
+      });
+      setCurrentPage("dashboard");
+    } else {
+      setParent(parentData);
+      setCurrentPage("dashboard");
+    }
   };
 
-  const handleSignup = (parentData?: Parent) => {
-    setParent(parentData || demoParent);
-    setCurrentPage("dashboard");
+  // ---------------- Signup handler ----------------
+  const handleSignup = async (parentData?: Parent) => {
+    await handleLogin(parentData);
   };
 
-  const handleLogout = () => {
+  // ---------------- Logout ----------------
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setParent(null);
     setCurrentPage("home");
   };
