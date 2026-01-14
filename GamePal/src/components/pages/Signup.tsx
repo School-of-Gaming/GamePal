@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import type { Parent } from "../../App";
 import { signupWithPassword } from "../../supabase/auth";
@@ -10,7 +10,7 @@ type SignupProps = {
   onGoToLogin: () => void;
 };
 
-const countries = ["USA", "Canada", "UK", "Australia", "Other"]; // Example
+//const countries = ["USA", "Canada", "UK", "Australia", "Other"]; // Example
 
 export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
   const [name, setName] = useState("");
@@ -20,6 +20,20 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
   const [age, setAge] = useState<number | "">("");
   const [showUnderage, setShowUnderage] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [countries, setCountries] = useState<{ code: string; name: string }[]>([]);
+
+  // Fetch countries from Supabase on component mount
+  useEffect(() => {
+    const fetchCountries = async () => {
+      const { data, error } = await supabase
+        .from("countries")
+        .select("code, name")
+        .order("name");
+
+      if (!error && data) setCountries(data);
+    };
+    fetchCountries();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -41,13 +55,11 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
 
   // Save parent profile to Supabase table
   const parentProfile = {
-    id: data.user?.id,
-    name,
-    email,
-    children: [],
-    country,
-    age,
-  };
+      id: data.user?.id, 
+      full_name: name,
+      country, 
+      age,
+    };
 
   const { error: profileError } = await supabase
     .from("profiles")
@@ -62,11 +74,11 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
   setLoading(false);
 
   onSignup({
-    id: parentProfile.id!,
-    name: parentProfile.name,
-    email: parentProfile.email,
-    children: [],
-  });
+      id: parentProfile.id!,
+      name: parentProfile.full_name,
+      email: email, 
+      children: [],
+    });
 };
 
 
@@ -115,8 +127,8 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
         >
           <option value="">Select your country</option>
           {countries.map((c) => (
-            <option key={c} value={c}>
-              {c}
+            <option key={c.code} value={c.code}>
+              {c.name}
             </option>
           ))}
         </select>

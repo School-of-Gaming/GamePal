@@ -5,6 +5,7 @@ import { Edit, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
 import { AddChildProfile } from "./AddChildProfile";
 import { EditChildProfile } from "./EditChildProfile"; 
+import { supabase } from "../../supabase/client";
 
 type KidsManagerProps = {
   parent: Parent;
@@ -34,15 +35,31 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
   };
   
   
-  const deleteChild = (childId: string) => {
-    const updatedChildren = parent.children.filter((c) => c.id !== childId);
-    onUpdateParent({ ...parent, children: updatedChildren });
-  };
+  const deleteChild = async (childId: string) => {
+  const { error } = await supabase
+    .from("children")
+    .delete()
+    .eq("id", childId);
+
+  if (error) {
+    alert("Error deleting child: " + error.message);
+    return;
+  }
+
+  const updatedChildren = parent.children.filter((c) => c.id !== childId);
+  onUpdateParent({ ...parent, children: updatedChildren });
+};
+
 
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
-      <ParentNav parent={parent} />
+      <ParentNav 
+        parent={parent} 
+        onLogout={() => {
+          console.log("Parent logged out");
+        }} 
+      />
 
 
       <main className="flex-1 w-full p-6 overflow-auto bg-[#f8f6fb]"> 

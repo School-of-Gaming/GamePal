@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import type { Child, Parent } from "../../App";
+import { supabase } from "../../supabase/client";
 
 type EditChildProfileProps = {
   child: Child;
   parent: Parent;
   onClose: () => void;
   onSave: (updatedChild: Child) => void;
+  loading?: boolean;
 };
 
 // --- Dummy Data for Selectable Options ---
@@ -78,11 +80,9 @@ const toggleSelection = (list: string[], item: string) =>
 
 
 export function EditChildProfile({ child, onClose, onSave }: EditChildProfileProps) {
-  const [activeTab, setActiveTab] = useState<
-    "Basic Info" | "Games" | "Profile" | "Preferences"
-  >("Basic Info");
-
+  const [activeTab, setActiveTab] = useState<"Basic Info" | "Games" | "Profile" | "Preferences">("Basic Info");
   const [editedChild, setEditedChild] = useState<Child>(child);
+  const [loading, setLoading] = useState(false);
 
   const handleTextChange = <K extends keyof Child>(
     field: K,
@@ -91,8 +91,35 @@ export function EditChildProfile({ child, onClose, onSave }: EditChildProfilePro
     setEditedChild((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    onSave(editedChild);
+  const handleSave = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("children")
+      .update({
+        name: editedChild.name,
+        age: editedChild.age,
+        avatar: editedChild.avatar,
+        bio: editedChild.bio,
+        games: editedChild.games,
+        language: editedChild.language,
+        hobbies: editedChild.hobbies,
+        interests: editedChild.interests,
+        play_type: editedChild.playType,
+        theme: editedChild.theme,
+        availability: editedChild.availability,
+      })
+      .eq("id", editedChild.id)
+      .select()
+      .single();
+
+    setLoading(false);
+
+    if (error) {
+      alert("Error updating child: " + error.message);
+      return;
+    }
+
+    onSave(data);
     onClose();
   };
 
@@ -377,9 +404,10 @@ export function EditChildProfile({ child, onClose, onSave }: EditChildProfilePro
         <div className="p-4 border-t border-gray-100 flex justify-end space-x-3">
           <Button
             onClick={handleSave}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            disabled={loading}
+            className={`text-white ${loading ? "bg-gray-400" : "bg-purple-600 hover:bg-purple-700"}`}
           >
-            Save Changes ✨
+            {loading ? "Saving..." : "Save Changes ✨"}
           </Button>
           <Button
             onClick={onClose}

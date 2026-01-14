@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect  } from "react";
 import { ParentDashboard } from "./components/pages/ParentDashboard";
 import { KidsManager } from "./components/pages/KidsManager";
 import { Matchmaking } from "./components/pages/Matchmaking";
@@ -10,7 +10,6 @@ import { Home } from "./components/pages/Home";
 import { Login } from "./components/pages/Login";
 import { Signup } from "./components/pages/Signup";
 import { supabase } from './supabase/client';
-import { getCurrentUser } from './supabase/auth';
 
 // ---------------- Types ----------------
 export type Child = {
@@ -53,52 +52,85 @@ export default function App() {
   >("home");
 
   // ---------------- Handlers ----------------
- const handleLogin = async (parentData?: Parent) => {
-    if (!parentData) {
-      const user = await getCurrentUser();
-      if (!user) return;
-
-      // Fetch profile from Supabase
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile) return;
-
-      setParent({
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        children: profile.children || [],
-      });
-      setCurrentPage("dashboard");
-    } else {
+  const handleLogin = async (parentData?: Parent) => {
+    if (parentData) {
+      // Login called with full Parent object (from Login.tsx or Signup.tsx)
       setParent(parentData);
       setCurrentPage("dashboard");
+      return;
     }
+
+    // Otherwise, try auto-login (magic link / already signed in)
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+    if (!user) return;
+
+    // Fetch parent profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    if (!profile) return;
+
+    // Fetch children
+    const { data: childrenData } = await supabase
+      .from("children")
+      .select("*")
+      .eq("parent_id", profile.id);
+
+    setParent({
+      id: profile.id,
+      name: profile.full_name,
+      email: user.email || "",
+      children: (childrenData || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        age: c.age,
+        avatar: c.avatar || "🧒",
+        bio: c.bio || "",
+        games: c.games || [],
+        language: c.language || [],
+        hobbies: c.hobbies || [],
+        interests: c.interests || [],
+        playType: c.play_type ? [c.play_type] : [],
+        theme: c.theme ? [c.theme] : [],
+        availability: c.availability || [],
+      }))
+    });
+
+    setCurrentPage("dashboard");
   };
 
-  // ---------------- Signup handler ----------------
-  const handleSignup = async (parentData?: Parent) => {
-    await handleLogin(parentData);
+  // ---------------- SIGNUP ----------------
+  const handleSignup = async (parentData: Parent) => {
+    // parentData comes from Signup.tsx after Supabase signup & profile creation
+    setParent(parentData);
+    setCurrentPage("dashboard");
   };
 
-  // ---------------- Logout ----------------
+  // ---------------- LOGOUT ----------------
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setParent(null);
     setCurrentPage("home");
   };
 
+  // ---------------- MAGIC LINK / AUTO LOGIN ----------------
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") handleLogin();
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
   // ---------------- Render ----------------
   if (!parent) {
     if (currentPage === "home") {
       return (
         <Home
-          onLogin={(parent) => handleLogin(parent)}
-          onSignup={(parent) => handleSignup(parent)}
+          onLogin={() => setCurrentPage("login")}
+          onSignup={() => setCurrentPage("signup")}
         />
       );
     }
