@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import type { Parent } from "../../App";
-import { signupWithPassword } from "../../supabase/auth";
+//import { signupWithPassword } from "../../supabase/auth";
 import { supabase } from "../../supabase/client";
 
 type SignupProps = {
@@ -45,25 +45,26 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
 
   setLoading(true);
 
-  const { data, error } = await signupWithPassword(email, password);
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
 
-  if (error) {
-    alert(error.message);
+  if (error || !data.user) {
+    alert(error?.message || "Signup failed");
     setLoading(false);
     return;
   }
 
-  // Save parent profile to Supabase table
-  const parentProfile = {
-      id: data.user?.id, 
-      full_name: name,
-      country, 
-      age,
-    };
 
   const { error: profileError } = await supabase
     .from("profiles")
-    .insert(parentProfile);
+    .insert({
+      id: data.user.id,
+      full_name: name,
+      country,
+      age,
+    });
 
   if (profileError) {
     alert(profileError.message);
@@ -71,15 +72,16 @@ export function Signup({ onSignup, onBack, onGoToLogin }: SignupProps) {
     return;
   }
 
-  setLoading(false);
-
   onSignup({
-      id: parentProfile.id!,
-      name: parentProfile.full_name,
-      email: email, 
-      children: [],
-    });
+    id: data.user.id,
+    name,
+    email,
+    children: [],
+  });
+
+  setLoading(false);
 };
+
 
 
   return (

@@ -4,12 +4,13 @@ import type { Child, Parent } from "../../App";
 import { supabase } from "../../supabase/client";
 
 type EditChildProfileProps = {
-  child: Child;
+  child: Partial<Child>;
   parent: Parent;
   onClose: () => void;
   onSave: (updatedChild: Child) => void;
   loading?: boolean;
 };
+
 
 // --- Dummy Data for Selectable Options ---
 const gamesOptions = [
@@ -78,10 +79,25 @@ const SelectableTag = ({
 const toggleSelection = (list: string[], item: string) =>
   list.includes(item) ? list.filter((i) => i !== item) : [...list, item];
 
+type EditableChild = Omit<Child, "id"> & { id?: string };
 
-export function EditChildProfile({ child, onClose, onSave }: EditChildProfileProps) {
+export function EditChildProfile({ child, parent, onClose, onSave }: EditChildProfileProps) {
   const [activeTab, setActiveTab] = useState<"Basic Info" | "Games" | "Profile" | "Preferences">("Basic Info");
-  const [editedChild, setEditedChild] = useState<Child>(child);
+  const [editedChild, setEditedChild] = useState<EditableChild>({
+  id: child.id,
+  name: child.name || "",
+  age: child.age || 0,
+  avatar: child.avatar || "🧒",
+  bio: child.bio || "",
+  games: child.games || [],
+  language: child.language || [],
+  hobbies: child.hobbies || [],
+  interests: child.interests || [],
+  playType: child.playType || [],
+  theme: child.theme || [],
+  availability: child.availability || [],
+});
+
   const [loading, setLoading] = useState(false);
 
   const handleTextChange = <K extends keyof Child>(
@@ -92,8 +108,13 @@ export function EditChildProfile({ child, onClose, onSave }: EditChildProfilePro
   };
 
   const handleSave = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
+  setLoading(true);
+
+  let data, error;
+
+  if (editedChild.id) {
+    // Existing child → update
+    ({ data, error } = await supabase
       .from("children")
       .update({
         name: editedChild.name,
@@ -104,24 +125,52 @@ export function EditChildProfile({ child, onClose, onSave }: EditChildProfilePro
         language: editedChild.language,
         hobbies: editedChild.hobbies,
         interests: editedChild.interests,
-        play_type: editedChild.playType,
-        theme: editedChild.theme,
+        play_type: editedChild.playType || [],
+        theme: editedChild.theme || [],
         availability: editedChild.availability,
       })
       .eq("id", editedChild.id)
       .select()
-      .single();
+      .single());
+  } else {
+    // New child → insert
+    ({ data, error } = await supabase
+      .from("children")
+      .insert({
+        ...editedChild,
+        parent_id: parent.id,
+        play_type: editedChild.playType,
+        theme: editedChild.theme,
+      })
+      .select()
+      .single());
+  }
 
-    setLoading(false);
+  setLoading(false);
 
-    if (error) {
-      alert("Error updating child: " + error.message);
-      return;
-    }
+  if (error) {
+    alert("Error saving child: " + error.message);
+    return;
+  }
 
-    onSave(data);
-    onClose();
-  };
+  onSave({
+    id: data.id!,
+    name: data.name!,
+    age: data.age!,
+    avatar: data.avatar || "🧒",
+    bio: data.bio || "",
+    games: data.games || [],
+    language: data.language || [],
+    hobbies: data.hobbies || [],
+    interests: data.interests || [],
+    playType: data.play_type || [],
+    theme: data.theme || [],
+    availability: data.availability || [],
+  });
+
+  onClose();
+};
+
 
   const renderTabContent = () => {
     switch (activeTab) {

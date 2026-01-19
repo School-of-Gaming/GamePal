@@ -37,8 +37,8 @@ export function AddChildProfile({ parent, onClose, onSave }: AddChildProfileProp
       .insert({
         ...child,
         parent_id: parent.id,
-        play_type: child.playType[0] || null, 
-        theme: child.theme[0] || null,
+        play_type: child.playType || [], 
+        theme: child.theme || [],
       })
       .select()
       .single();
@@ -60,8 +60,8 @@ export function AddChildProfile({ parent, onClose, onSave }: AddChildProfileProp
       language: data.language || [],
       hobbies: data.hobbies || [],
       interests: data.interests || [],
-      playType: data.play_type ? [data.play_type] : [],
-      theme: data.theme ? [data.theme] : [],
+      playType: data.play_type || [],
+      theme: data.theme || [],
       availability: data.availability || [],
     });
 
@@ -70,7 +70,7 @@ export function AddChildProfile({ parent, onClose, onSave }: AddChildProfileProp
 
   return (
     <EditChildProfile
-      child={{ ...emptyChild, id: "" }}
+      child={emptyChild}
       parent={parent}
       onClose={onClose}
       onSave={handleSave}
