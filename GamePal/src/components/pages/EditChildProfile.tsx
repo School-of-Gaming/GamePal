@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import type { Child, Parent } from "../../App";
 import { supabase } from "../../supabase/client";
@@ -10,43 +10,6 @@ type EditChildProfileProps = {
   onSave: (updatedChild: Child) => void;
   loading?: boolean;
 };
-
-
-// --- Dummy Data for Selectable Options ---
-const gamesOptions = [
-  "Minecraft", "Roblox", "Fortnite", "Among Us", "Pokemon", "Animal Crossing",
-  "Mario Kart", "Zelda", "Splatoon", "Rocket League", "Fall Guys", "Subway Surfers",
-];
-
-const languageOptions = [
-  "English", "Spanish", "French", "German", "Italian", "Portuguese",
-  "Mandarin", "Japanese", "Korean", "Arabic", "Hindi", "Russian",
-  "Dutch", "Polish", "Swedish",
-];
-
-const hobbyOptions = [
-  "Drawing", "Reading", "Sports", "Music", "Crafts", "Cooking",
-  "Dancing", "Coding", "YouTube", "Writing", "Photography", "Singing",
-  "Building", "Collecting", "Puzzles",
-];
-
-const interestOptions = [
-  "Adventure", "Animals", "Science", "Space", "Nature", "Technology",
-  "Art", "History", "Movies", "Anime", "Comics", "Magic",
-  "Dragons", "Dinosaurs", "Robots",
-];
-
-const playStyleOptions = ["Competitive", "Casual", "Creative", "Co-op", "Solo", "Team Play"];
-
-const gameThemeOptions = [
-  "Fantasy", "Sci-Fi", "Mystery", "Action", "Puzzle", "Survival",
-  "Building", "Racing", "Sports", "Adventure", "Horror", "Platformer",
-  "Simulation", "RPG", "Sandbox", "Exploration", "Strategy", "Fast-Paced", "Relaxing",
-];
-
-const avatarOptions = ["🧒", "🦁", "🦄", "🐶", "🐱", "🐼", "🐸", "🐵", "🐰", "👾", "🤖", "🧙‍♂️"];
-
-const availabilityOptions = [ "Weekdays (After School)", "Weekdays (Evening)", "Weekends", "Morning", "Afternoon", "Evening", "Flexible", "Short Sessions"];
 
 
 // Reusable Button/Tag Component
@@ -83,20 +46,70 @@ type EditableChild = Omit<Child, "id"> & { id?: string };
 
 export function EditChildProfile({ child, parent, onClose, onSave }: EditChildProfileProps) {
   const [activeTab, setActiveTab] = useState<"Basic Info" | "Games" | "Profile" | "Preferences">("Basic Info");
+
+  // Lookup data state (NEW: fetch from Supabase)
+   const [lookups, setLookups] = useState<{
+    games: { id: string; name: string }[];
+    languages: { id: string; name: string }[];
+    hobbies: { id: string; name: string }[];
+    interests: { id: string; name: string }[];
+    playTypes: { id: string; name: string }[];
+    themes: { id: string; name: string }[];
+    availability: { id: string; name: string }[];
+    avatars: { id: string; emoji: string }[];
+  }>({
+    games: [],
+    languages: [],
+    hobbies: [],
+    interests: [],
+    playTypes: [],
+    themes: [],
+    availability: [],
+    avatars: [],
+  });
+
+  useEffect(() => {
+    const fetchLookups = async () => {
+      const { data: games } = await supabase.from("games").select("*");
+      const { data: languages } = await supabase.from("languages").select("*");
+      const { data: hobbies } = await supabase.from("hobbies_lookup").select("*");
+      const { data: interests } = await supabase.from("interests_lookup").select("*");
+      const { data: playTypes } = await supabase.from("play_types").select("*");
+      const { data: themes } = await supabase.from("game_themes").select("*");
+      const { data: availability } = await supabase.from("availability_options").select("*");
+      const { data: avatars } = await supabase.from("avatars").select("*");
+
+      setLookups({
+        games: games || [],
+        languages: languages || [],
+        hobbies: hobbies || [],
+        interests: interests || [],
+        playTypes: playTypes || [],
+        themes: themes || [],
+        availability: availability || [],
+        avatars: avatars || [],
+      });
+    };
+
+    fetchLookups();
+  }, []);
+
+
   const [editedChild, setEditedChild] = useState<EditableChild>({
-  id: child.id,
-  name: child.name || "",
-  age: child.age || 0,
-  avatar: child.avatar || "🧒",
-  bio: child.bio || "",
-  games: child.games || [],
-  language: child.language || [],
-  hobbies: child.hobbies || [],
-  interests: child.interests || [],
-  playType: child.playType || [],
-  theme: child.theme || [],
-  availability: child.availability || [],
-});
+    id: child.id,
+    parent_id: child.parent_id || parent.id,
+    name: child.name || "",
+    age: child.age ?? 5,
+    bio: child.bio || "",
+    games_ids: child.games_ids || [],
+    language_ids: child.language_ids || [],
+    hobbies_ids: child.hobbies_ids || [],
+    interests_ids: child.interests_ids || [],
+    play_type_ids: child.play_type_ids || [],
+    theme_ids: child.theme_ids || [],
+    availability_ids: child.availability_ids || [],
+    avatar_id: child.avatar_id || undefined,
+  });
 
   const [loading, setLoading] = useState(false);
 
@@ -107,69 +120,94 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
     setEditedChild((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = async () => {
-  setLoading(true);
+   const handleSave = async () => {
+    setLoading(true);
+    let childRecord;
 
-  let data, error;
+    try {
+      //  Insert or update the child
+      if (editedChild.id) {
+        const { data, error } = await supabase
+          .from("children")
+          .update({
+            parent_id: parent.id,
+            name: editedChild.name,
+            age: editedChild.age,
+            bio: editedChild.bio ?? "",
+            avatar_id: editedChild.avatar_id,
+          })
+          .eq("id", editedChild.id)
+          .select()
+          .single();
 
-  if (editedChild.id) {
-    // Existing child → update
-    ({ data, error } = await supabase
-      .from("children")
-      .update({
-        name: editedChild.name,
-        age: editedChild.age,
-        avatar: editedChild.avatar,
-        bio: editedChild.bio,
-        games: editedChild.games,
-        language: editedChild.language,
-        hobbies: editedChild.hobbies,
-        interests: editedChild.interests,
-        play_type: editedChild.playType || [],
-        theme: editedChild.theme || [],
-        availability: editedChild.availability,
-      })
-      .eq("id", editedChild.id)
-      .select()
-      .single());
-  } else {
-    // New child → insert
-    ({ data, error } = await supabase
-      .from("children")
-      .insert({
-        ...editedChild,
-        parent_id: parent.id,
-        play_type: editedChild.playType,
-        theme: editedChild.theme,
-      })
-      .select()
-      .single());
-  }
+        if (error) throw error;
+        childRecord = data;
+      } else {
+        const { data, error } = await supabase
+          .from("children")
+          .insert({
+            parent_id: parent.id,
+            name: editedChild.name,
+            age: editedChild.age,
+            bio: editedChild.bio ?? "",
+            avatar_id: editedChild.avatar_id,
+          })
+          .select()
+          .single();
 
-  setLoading(false);
+        if (error) throw error;
+        childRecord = data;
+      }
 
-  if (error) {
-    alert("Error saving child: " + error.message);
-    return;
-  }
+      const childId = childRecord.id;
 
-  onSave({
-    id: data.id!,
-    name: data.name!,
-    age: data.age!,
-    avatar: data.avatar || "🧒",
-    bio: data.bio || "",
-    games: data.games || [],
-    language: data.language || [],
-    hobbies: data.hobbies || [],
-    interests: data.interests || [],
-    playType: data.play_type || [],
-    theme: data.theme || [],
-    availability: data.availability || [],
-  });
+      
+      const syncJoinTable = async (table: string, col: string, ids: string[]) => {
 
-  onClose();
-};
+        await supabase.from(table).delete().eq("child_id", childId);
+  
+        if (ids.length > 0) {
+          const insertPayload = ids.map((id) => ({
+            child_id: childId,
+            [col]: id,
+          }));
+          await supabase.from(table).insert(insertPayload);
+        }
+      };
+
+    
+      await syncJoinTable("child_games", "game_id", editedChild.games_ids || []);
+      await syncJoinTable("child_languages", "language_id", editedChild.language_ids || []);
+      await syncJoinTable("child_hobbies", "hobby_id", editedChild.hobbies_ids || []);
+      await syncJoinTable("child_interests", "interest_id", editedChild.interests_ids || []);
+      await syncJoinTable("child_play_types", "play_type_id", editedChild.play_type_ids || []);
+      await syncJoinTable("child_themes", "theme_id", editedChild.theme_ids || []);
+      await syncJoinTable("child_availability", "availability_id", editedChild.availability_ids || []);
+
+    
+      onSave({
+        id: childId,
+        parent_id: childRecord.parent_id!,
+        name: childRecord.name!,
+        age: childRecord.age!,
+        bio: childRecord.bio ?? "",
+        avatar_id: childRecord.avatar_id || undefined,
+        games_ids: editedChild.games_ids || [],
+        language_ids: editedChild.language_ids || [],
+        hobbies_ids: editedChild.hobbies_ids || [],
+        interests_ids: editedChild.interests_ids || [],
+        play_type_ids: editedChild.play_type_ids || [],
+        theme_ids: editedChild.theme_ids || [],
+        availability_ids: editedChild.availability_ids || [],
+      });
+
+      onClose();
+    } catch (err: any) {
+      alert("Error saving child: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const renderTabContent = () => {
@@ -194,9 +232,10 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
                     <h4 className="text-lg font-semibold text-gray-800 mb-3">Age</h4>
                     <input
                     type="number"
+                    min={5}
                     value={editedChild.age}
                     onChange={(e) =>
-                        handleTextChange("age", parseInt(e.target.value) || 0)
+                        handleTextChange("age", parseInt(e.target.value) || 5)
                     }
                     className="w-full p-3 border border-gray-300 rounded-lg text-white-800 font-medium focus:ring-purple-500 focus:border-purple-500"
                     placeholder="Age"
@@ -208,23 +247,23 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
                     <h4 className="text-lg font-semibold text-gray-800 mb-3">Avatar</h4>
 
                     <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-                        <div className="text-5xl">{editedChild.avatar}</div>
+                        <div className="text-5xl">{lookups.avatars.find(a => a.id === editedChild.avatar_id)?.emoji || "🧒"}</div>
                         <p className="text-gray-600">Selected Avatar</p>
                     </div>
 
                     <div className="grid grid-cols-6 gap-2">
-                        {avatarOptions.map((av) => (
+                        {lookups.avatars.map((av) => (
                         <button
-                            key={av}
+                            key={av.id}
                             type="button"
-                            onClick={() => handleTextChange("avatar", av)}
+                            onClick={() => handleTextChange("avatar_id", av.id)}
                             className={`text-3xl p-2 rounded-lg border transition-colors ${
-                            editedChild.avatar === av
+                            editedChild.avatar_id === av.id
                                 ? "border-purple-600 bg-purple-100"
                                 : "border-gray-200 hover:border-purple-500 hover:bg-purple-50"
                             }`}
                         >
-                            {av}
+                            {av.emoji}
                         </button>
                         ))}
                     </div>
@@ -239,19 +278,19 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
         return (
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-gray-800 mb-3">
-              Favorite Games (Selected: {editedChild.games.length})
+              Favorite Games (Selected: {editedChild.games_ids?.length || 0})
             </h4>
             <div className="grid grid-cols-3 gap-3">
-              {gamesOptions.map((game) => (
+              {lookups.games.map((game) => (
                 <SelectableTag
-                  key={game}
-                  label={game}
-                  isSelected={editedChild.games.includes(game)}
+                  key={game.id}
+                  label={game.name}
+                  isSelected={editedChild.games_ids?.includes(game.id)}
                   onClick={() =>
-                    handleTextChange(
-                      "games",
-                      toggleSelection(editedChild.games, game)
-                    )
+                    setEditedChild(prev => ({
+                      ...prev,
+                      games_ids: toggleSelection(prev.games_ids || [], game.id)
+                    }))
                   }
                 />
               ))}
@@ -274,32 +313,32 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
                 About Me
               </h4>
               <textarea
-                value={editedChild.bio}
+                value={editedChild.bio ?? ""}
                 onChange={(e) => handleTextChange("bio", e.target.value)}
                 rows={4}
                 maxLength={200}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
               />
               <p className="text-right text-xs text-gray-500">
-                {editedChild.bio.length}/200 characters
+                {(editedChild.bio ?? "").length}/200 characters
               </p>
             </div>
 
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                Languages 🗣️ (Selected: {editedChild.language.length})
+                Languages 🗣️ (Selected: {editedChild.language_ids?.length || 0})
               </h4>
               <div className="grid grid-cols-3 gap-3">
-                {languageOptions.map((lang) => (
+                {lookups.languages.map((lang) => (
                   <SelectableTag
-                    key={lang}
-                    label={lang}
-                    isSelected={editedChild.language.includes(lang)}
+                    key={lang.id}
+                    label={lang.name}
+                    isSelected={editedChild.language_ids?.includes(lang.id)}
                     onClick={() =>
-                      handleTextChange(
-                        "language",
-                        toggleSelection(editedChild.language, lang)
-                      )
+                      setEditedChild(prev => ({
+                        ...prev,
+                        language_ids: toggleSelection(prev.language_ids || [], lang.id)
+                      }))
                     }
                   />
                 ))}
@@ -308,19 +347,19 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
 
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                Hobbies 🎨 (Selected: {editedChild.hobbies.length})
+                Hobbies 🎨 (Selected: {editedChild.hobbies_ids?.length || 0})
               </h4>
               <div className="grid grid-cols-3 gap-3">
-                {hobbyOptions.map((hobby) => (
+                {lookups.hobbies.map((hobby) => (
                   <SelectableTag
-                    key={hobby}
-                    label={hobby}
-                    isSelected={editedChild.hobbies.includes(hobby)}
+                    key={hobby.id}
+                    label={hobby.name}
+                    isSelected={editedChild.hobbies_ids?.includes(hobby.id)}
                     onClick={() =>
-                      handleTextChange(
-                        "hobbies",
-                        toggleSelection(editedChild.hobbies, hobby)
-                      )
+                      setEditedChild(prev => ({
+                        ...prev,
+                        hobbies_ids: toggleSelection(prev.hobbies_ids || [], hobby.id)
+                      }))
                     }
                   />
                 ))}
@@ -329,19 +368,19 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
 
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                Interests 🚀 (Selected: {editedChild.interests.length})
+                Interests 🚀 (Selected: {editedChild.interests_ids?.length || 0})
               </h4>
               <div className="grid grid-cols-3 gap-3">
-                {interestOptions.map((interest) => (
+                {lookups.interests.map((interest) => (
                   <SelectableTag
-                    key={interest}
-                    label={interest}
-                    isSelected={editedChild.interests.includes(interest)}
+                    key={interest.id}
+                    label={interest.name}
+                    isSelected={editedChild.interests_ids?.includes(interest.id)}
                     onClick={() =>
-                      handleTextChange(
-                        "interests",
-                        toggleSelection(editedChild.interests, interest)
-                      )
+                      setEditedChild(prev => ({
+                        ...prev,
+                        interests_ids: toggleSelection(prev.interests_ids || [], interest.id)
+                      }))
                     }
                   />
                 ))}
@@ -355,19 +394,19 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
           <div className="space-y-6">
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                Play Style (Selected: {editedChild.playType.length})
+                Play Style (Selected: {editedChild.play_type_ids?.length || 0})
               </h4>
               <div className="grid grid-cols-3 gap-3">
-                {playStyleOptions.map((style) => (
+                {lookups.playTypes.map((style) => (
                   <SelectableTag
-                    key={style}
-                    label={style}
-                    isSelected={editedChild.playType.includes(style)}
+                    key={style.id}
+                    label={style.name}
+                    isSelected={editedChild.play_type_ids?.includes(style.id)}
                     onClick={() =>
-                      handleTextChange(
-                        "playType",
-                        toggleSelection(editedChild.playType, style)
-                      )
+                      setEditedChild(prev => ({
+                        ...prev,
+                        play_type_ids: toggleSelection(prev.play_type_ids || [], style.id)
+                      }))
                     }
                   />
                 ))}
@@ -376,19 +415,19 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
 
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                Game Themes (Selected: {editedChild.theme.length})
+                Game Themes (Selected: {editedChild.theme_ids?.length || 0})
               </h4>
               <div className="grid grid-cols-3 gap-3">
-                {gameThemeOptions.map((theme) => (
+                {lookups.themes.map((theme) => (
                   <SelectableTag
-                    key={theme}
-                    label={theme}
-                    isSelected={editedChild.theme.includes(theme)}
+                    key={theme.id}
+                    label={theme.name}
+                    isSelected={editedChild.theme_ids?.includes(theme.id)}
                     onClick={() =>
-                      handleTextChange(
-                        "theme",
-                        toggleSelection(editedChild.theme, theme)
-                      )
+                      setEditedChild(prev => ({
+                        ...prev,
+                        theme_ids: toggleSelection(prev.theme_ids || [], theme.id)
+                      }))
                     }
                   />
                 ))}
@@ -397,20 +436,20 @@ export function EditChildProfile({ child, parent, onClose, onSave }: EditChildPr
 
             <div>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                Availability ⏰ (Selected: {editedChild.availability?.length || 0})
+                Availability ⏰ (Selected: {editedChild.availability_ids?.length || 0})
               </h4>
 
               <div className="grid grid-cols-2 gap-3">
-                {availabilityOptions.map((slot) => (
+                {lookups.availability.map((slot) => (
                   <SelectableTag
-                    key={slot}
-                    label={slot}
-                    isSelected={editedChild.availability?.includes(slot)}
+                    key={slot.id}
+                    label={slot.name}
+                    isSelected={editedChild.availability_ids?.includes(slot.id)}
                     onClick={() =>
-                      handleTextChange(
-                        "availability",
-                        toggleSelection(editedChild.availability || [], slot)
-                      )
+                      setEditedChild(prev => ({
+                        ...prev,
+                        availability_ids: toggleSelection(prev.availability_ids || [], slot.id)
+                      }))
                     }
                   />
                 ))}

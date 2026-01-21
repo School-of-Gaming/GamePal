@@ -2,7 +2,7 @@ import type { Parent, Child } from "../../App";
 import { ParentNav } from "../Nav";
 import { Button } from "../ui/button";
 import { Edit, Trash2, Plus } from "lucide-react"; 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddChildProfile } from "./AddChildProfile";
 import { EditChildProfile } from "./EditChildProfile"; 
 import { supabase } from "../../supabase/client";
@@ -18,14 +18,108 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
 
   const [addingChild, setAddingChild] = useState(false);
 
+  const [childrenData, setChildrenData] = useState<Child[]>([]);
+  const [lookups, setLookups] = useState<{
+    games: { id: string; name: string }[];
+    languages: { id: string; name: string }[];
+    hobbies: { id: string; name: string }[];
+    interests: { id: string; name: string }[];
+    playTypes: { id: string; name: string }[];
+    themes: { id: string; name: string }[];
+    availability: { id: string; name: string }[];
+    avatars: { id: string; emoji: string }[];
+  }>({
+    games: [],
+    languages: [],
+    hobbies: [],
+    interests: [],
+    playTypes: [],
+    themes: [],
+    availability: [],
+    avatars: [],
+  });
+
+   useEffect(() => {
+    const fetchLookups = async () => {
+      const { data: games } = await supabase.from("games").select("*");
+      const { data: languages } = await supabase.from("languages").select("*");
+      const { data: hobbies } = await supabase.from("hobbies_lookup").select("*");
+      const { data: interests } = await supabase.from("interests_lookup").select("*");
+      const { data: playTypes } = await supabase.from("play_types").select("*");
+      const { data: themes } = await supabase.from("game_themes").select("*");
+      const { data: availability } = await supabase.from("availability_options").select("*");
+      const { data: avatars } = await supabase.from("avatars").select("*");
+
+      setLookups({
+        games: games || [],
+        languages: languages || [],
+        hobbies: hobbies || [],
+        interests: interests || [],
+        playTypes: playTypes || [],
+        themes: themes || [],
+        availability: availability || [],
+        avatars: avatars || [],
+      });
+    };
+
+    const fetchChildren = async () => {
+      const { data: children } = await supabase
+        .from("children")
+        .select("*")
+        .eq("parent_id", parent.id);
+
+      if (!children) return;
+
+      const enrichedChildren: Child[] = await Promise.all(
+        children.map(async (c) => {
+          const [
+            { data: games },
+            { data: languages },
+            { data: hobbies },
+            { data: interests },
+            { data: playTypes },
+            { data: themes },
+            { data: availability },
+          ] = await Promise.all([
+            supabase.from("child_games").select("game_id").eq("child_id", c.id),
+            supabase.from("child_languages").select("language_id").eq("child_id", c.id),
+            supabase.from("child_hobbies").select("hobby_id").eq("child_id", c.id),
+            supabase.from("child_interests").select("interest_id").eq("child_id", c.id),
+            supabase.from("child_play_types").select("play_type_id").eq("child_id", c.id),
+            supabase.from("child_themes").select("theme_id").eq("child_id", c.id),
+            supabase.from("child_availability").select("availability_id").eq("child_id", c.id),
+          ]);
+
+          return {
+            ...c,
+            games_ids: games?.map(g => g.game_id) || [],
+            language_ids: languages?.map(l => l.language_id) || [],
+            hobbies_ids: hobbies?.map(h => h.hobby_id) || [],
+            interests_ids: interests?.map(i => i.interest_id) || [],
+            play_type_ids: playTypes?.map(p => p.play_type_id) || [],
+            theme_ids: themes?.map(t => t.theme_id) || [],
+            availability_ids: availability?.map(a => a.availability_id) || [],
+          };
+        })
+      );
+
+      setChildrenData(enrichedChildren);
+    };
+
+    fetchLookups();
+    fetchChildren();
+  }, [parent.id]);
+
+
   const startEditing = (child: Child) => {
     setEditingChild(child);
   };
   
   const handleSave = (updatedChild: Child) => {
-    const updatedChildren = parent.children.map((c) =>
+    const updatedChildren = childrenData.map((c) =>
       c.id === updatedChild.id ? updatedChild : c
     );
+    setChildrenData(updatedChildren);
     onUpdateParent({ ...parent, children: updatedChildren });
     setEditingChild(null); 
   };
@@ -46,7 +140,8 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
     return;
   }
 
-  const updatedChildren = parent.children.filter((c) => c.id !== childId);
+  const updatedChildren = childrenData.filter((c) => c.id !== childId);
+  setChildrenData(updatedChildren);
   onUpdateParent({ ...parent, children: updatedChildren });
 };
 
@@ -104,7 +199,7 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
                 {/* Avatar & Name & Action Buttons */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
-                    <div className="text-4xl p-2 bg-purple-50 rounded-full">{child.avatar}</div>
+                    <div className="text-4xl p-2 bg-purple-50 rounded-full">{lookups.avatars.find(a => a.id === child.avatar_id)?.emoji || "🧒"}</div>
                     <div>
                         <h3 className="text-xl font-bold text-gray-900">{child.name}</h3>
                         <p className="text-sm text-gray-500">Age {child.age}</p>
@@ -140,109 +235,81 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
                 {/* Tags Section (Games, Languages, Hobbies, Interests, Play Style, Themes) */}
                 <div className="space-y-2">
                   {/* Games Tags */}
-                  {child.games.length > 0 && (
+                  {child.games_ids.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       <span className="font-semibold text-sm text-gray-600">Games:</span>
-                      {child.games.map((game) => (
-                        <span
-                          key={game}
-                          className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {game}
-                        </span>
-                      ))}
+                      {child.games_ids.map(id => {
+                        const name = lookups.games.find(g => g.id === id)?.name || id;
+                        return <span key={id} className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full text-xs font-medium">{name}</span>;
+                      })}
                     </div>
                   )}
 
                   {/* Languages Tags */}
-                  {child.language.length > 0 && (
+                  {child.language_ids.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       <span className="font-semibold text-sm text-gray-600">Languages:</span>
-                      {child.language.map((lang) => (
-                        <span
-                          key={lang}
-                          className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {lang}
-                        </span>
-                      ))}
+                      {child.language_ids.map(id => {
+                        const name = lookups.languages.find(l => l.id === id)?.name || id;
+                        return <span key={id} className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">{name}</span>;
+                      })}
                     </div>
                   )}
 
                   {/* Hobbies Tags */}
-                  {child.hobbies.length > 0 && (
+                  {child.hobbies_ids.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       <span className="font-semibold text-sm text-gray-600">Hobbies:</span>
-                      {child.hobbies.map((hobby) => (
-                        <span
-                          key={hobby}
-                          className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {hobby}
-                        </span>
-                      ))}
+                      {child.hobbies_ids.map(id => {
+                        const name = lookups.hobbies.find(h => h.id === id)?.name || id;
+                        return <span key={id} className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">{name}</span>;
+                      })}
                     </div>
                   )}
 
                   {/* Interests Tags */}
-                  {child.interests.length > 0 && (
+                  {child.interests_ids.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       <span className="font-semibold text-sm text-gray-600">Interests:</span>
-                      {child.interests.map((interest) => (
-                        <span
-                          key={interest}
-                          className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {interest}
-                        </span>
-                      ))}
+                      {child.interests_ids.map(id => {
+                        const name = lookups.interests.find(i => i.id === id)?.name || id;
+                        return <span key={id} className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-medium">{name}</span>;
+                      })}
                     </div>
                   )}
 
                   {/* Play Style Tags */}
-                  {child.playType.length > 0 && (
+                  {child.play_type_ids.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       <span className="font-semibold text-sm text-gray-600">Play Style:</span>
-                      {child.playType.map((pt) => (
-                        <span
-                          key={pt}
-                          className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {pt}
-                        </span>
-                      ))}
+                      {child.play_type_ids.map(id => {
+                        const name = lookups.playTypes.find(p => p.id === id)?.name || id;
+                        return <span key={id} className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">{name}</span>;
+                      })}
                     </div>
                   )}
 
                   {/* Game Themes Tags */}
-                  {child.theme.length > 0 && (
+                  {child.theme_ids.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       <span className="font-semibold text-sm text-gray-600">Game Themes:</span>
-                      {child.theme.map((theme) => (
-                        <span
-                          key={theme}
-                          className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {theme}
-                        </span>
-                      ))}
+                      {child.theme_ids.map(id => {
+                        const name = lookups.themes.find(t => t.id === id)?.name || id;
+                        return <span key={id} className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-medium">{name}</span>;
+                      })}
                     </div>
                   )}
 
                   {/* Availability / Timezone Tags */}
-                  {child.availability?.length > 0 && (
+                  {child.availability_ids.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       <span className="font-semibold text-sm text-gray-600">
                         Availability:
                       </span>
-                      {child.availability.map((slot) => (
-                        <span
-                          key={slot}
-                          className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {slot}
-                        </span>
-                      ))}
+                       {child.availability_ids.map(id => {
+                        const name = lookups.availability.find(a => a.id === id)?.name || id;
+                        return <span key={id} className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs font-medium">{name}</span>;
+                      })}
                     </div>
                   )}
 
@@ -269,10 +336,9 @@ export function KidsManager({ parent, onBack, onUpdateParent }: KidsManagerProps
           onClose={() => setAddingChild(false)}
           onSave={(newChild) => {
             // Add new child to parent's children array
-            onUpdateParent({
-              ...parent,
-              children: [...parent.children, newChild],
-            });
+            const updatedChildren = [...childrenData, newChild];
+            setChildrenData(updatedChildren);
+            onUpdateParent({ ...parent, children: updatedChildren });
             setAddingChild(false);
           }}
         />

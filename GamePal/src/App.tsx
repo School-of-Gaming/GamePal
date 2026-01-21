@@ -14,18 +14,18 @@ import { supabase } from './supabase/client';
 // ---------------- Types ----------------
 export type Child = {
   id: string;
+  parent_id: string;
   name: string;
   age: number;
-  avatar: string;
-  commonTags?: string[];
-  games: string[];
-  bio: string;
-  language: string[];
-  hobbies: string[];
-  interests: string[];
-  playType: string[];
-  theme: string[];
-  availability: string[];
+  bio?: string;
+  games_ids: string[];        
+  language_ids: string[];     
+  hobbies_ids: string[];      
+  interests_ids: string[];    
+  play_type_ids: string[];    
+  theme_ids: string[];        
+  availability_ids: string[]; 
+  avatar_id?: string; 
 };
 
 export type Parent = {
@@ -76,7 +76,16 @@ export default function App() {
     // Fetch children
     const { data: childrenData } = await supabase
       .from("children")
-      .select("*")
+      .select(`
+        *,
+        child_games(game_id),
+        child_languages(language_id),
+        child_hobbies(hobby_id),
+        child_interests(interest_id),
+        child_play_types(play_type_id),
+        child_themes(theme_id),
+        child_availability(availability_id)
+      `)
       .eq("parent_id", profile.id);
 
     setParent({
@@ -85,19 +94,21 @@ export default function App() {
       email: user.email || "",
       children: (childrenData || []).map(c => ({
         id: c.id,
+        parent_id: c.parent_id,
         name: c.name,
         age: c.age,
-        avatar: c.avatar || "🧒",
         bio: c.bio || "",
-        games: c.games || [],
-        language: c.language || [],
-        hobbies: c.hobbies || [],
-        interests: c.interests || [],
-        playType: c.play_type ? [c.play_type] : [],
-        theme: c.theme ? [c.theme] : [],
-        availability: c.availability || [],
+        games_ids: (c.child_games as { game_id: string }[] | undefined)?.map(g => g.game_id) || [],
+        language_ids: (c.child_languages as { language_id: string }[] | undefined)?.map(l => l.language_id) || [],
+        hobbies_ids: (c.child_hobbies as { hobby_id: string }[] | undefined)?.map(h => h.hobby_id) || [],
+        interests_ids: (c.child_interests as { interest_id: string }[] | undefined)?.map(i => i.interest_id) || [],
+        play_type_ids: (c.child_play_types as { play_type_id: string }[] | undefined)?.map(p => p.play_type_id) || [],
+        theme_ids: (c.child_themes as { theme_id: string }[] | undefined)?.map(t => t.theme_id) || [],
+        availability_ids: (c.child_availability as { availability_id: string }[] | undefined)?.map(a => a.availability_id) || [],
+        avatar_id: c.avatar_id || undefined
       }))
     });
+
 
     setCurrentPage("dashboard");
   };
