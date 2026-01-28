@@ -57,7 +57,28 @@ export function Home({ onLogin, onSignup }: HomeProps) {
         <p className="text-white/90 text-xl max-w-2xl mx-auto mt-2">
           Parents connect, kids play – it's that simple!
         </p>
+
+        {/* CTA Buttons Above Footer */}
+        <div className="mt-12 flex flex-col md:flex-row gap-6 justify-center items-center">
+          <Button
+            onClick={() => setShowSignup(true)}
+            size="lg"
+            className="px-12 py-6 rounded-full text-xl bg-white hover:bg-white/90 text-purple-600"
+          >
+            Get Started!
+          </Button>
+          <Button
+            onClick={() => setShowLogin(true)}
+            size="lg"
+            variant="outline"
+            className="px-12 py-6 rounded-full text-xl bg-white/20 text-white border-white/30 hover:bg-white/30"
+          >
+            Already a Member? Login
+          </Button>
+        </div>
       </main>
+
+
 
       {/* Info Sections */}
       <div className={`relative z-10 px-6 pb-12 space-y-16 transition-all duration-300 ${showLogin || showSignup ? "filter blur-sm pointer-events-none select-none" : ""}`}>
@@ -156,7 +177,7 @@ export function Home({ onLogin, onSignup }: HomeProps) {
             size="lg"
             className="px-12 py-6 rounded-full text-xl bg-white hover:bg-white/90 text-purple-600"
           >
-            Get Started Free!
+            Get Started!
           </Button>
           <Button
             onClick={() => setShowLogin(true)}

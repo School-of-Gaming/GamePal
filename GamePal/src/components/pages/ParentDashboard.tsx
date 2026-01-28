@@ -45,7 +45,7 @@ export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking,
           >
             <Search className="w-8 h-8 mb-3 text-yellow-500" />
             <h3 className="mb-2 text-xl font-semibold text-gray-800">Find Matches</h3>
-            <p className="text-gray-700">Browse potential game buddies</p>
+            <p className="text-gray-700">Browse potential Playdates</p>
           </div>
 
           <div
@@ -53,8 +53,8 @@ export function ParentDashboard({ parent, onGoToKidsManager , onGoToMatchmaking,
             className="p-6 rounded-2xl shadow-md bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer"
           >
             <Heart className="w-8 h-8 mb-3 text-pink-600" />
-            <h3 className="mb-2 text-xl font-semibold text-gray-800">Potential Matches</h3>
-            <p className="text-gray-700">Review compatible playmates</p>
+            <h3 className="mb-2 text-xl font-semibold text-gray-800">Playdate Request</h3>
+            <p className="text-gray-700">Incoming and outgoing playdates requests awaiting approval</p>
           </div>
 
 

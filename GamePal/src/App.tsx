@@ -2,7 +2,7 @@ import { useState, useEffect  } from "react";
 import { ParentDashboard } from "./components/pages/ParentDashboard";
 import { KidsManager } from "./components/pages/KidsManager";
 import { Matchmaking } from "./components/pages/Matchmaking";
-import { PotentialMatches } from "./components/pages/PotentialMatches";
+import { PotentialMatches } from "./components/pages/PlaydateRequest";
 import { ApprovedMatches } from "./components/pages/ApprovedMatches";
 import { Notifications } from "./components/pages/Notifications";
 import { ProfileSettings } from "./components/pages/ProfileSettings";

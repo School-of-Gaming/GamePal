@@ -12,6 +12,7 @@ type MatchmakingProps = {
 export function Matchmaking({ parent, onBack }: MatchmakingProps) {
   const [selectedChildId, setSelectedChildId] = useState(parent.children[0]?.id);
   const selectedChild = parent.children.find(c => c.id === selectedChildId);
+   
 
   const [filters, setFilters] = useState({
     ageMin: 3,
@@ -24,6 +25,15 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
     theme: "",
     availability: "",
   });
+
+  const getCompatibility = (kid: Child) => {
+    const baseScore = 60;
+    const tagBonus = kid.commonTags?.length
+      ? kid.commonTags.length * 5
+      : 0;
+
+    return Math.min(baseScore + tagBonus, 98);
+  };
 
   // Dummy matched kids
   const matchedKids: Child[] = [
@@ -116,7 +126,7 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
 
         <div>
           <h1 className="text-3xl font-bold mb-2 text-gray-900">Find Matches</h1>
-          <p className="text-gray-700 mb-4">Find out a pal that match for your children</p>
+          <p className="text-gray-700 mb-4">Find out a playdate that matches with your children</p>
         </div>
 
         {/* FILTERS CARD */}
@@ -283,6 +293,10 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                 key={kid.id}
                 className="p-4 pt-6 bg-white rounded-2xl shadow-lg relative border border-gray-100 hover:shadow-xl transition-shadow cursor-pointer"
               >
+                {/* Compatibility Badge */}
+                <div className="absolute top-3 right-3 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+                  {getCompatibility(kid)}% Match
+                </div>
                 <div className="flex items-center space-x-3 mb-2 text-black">
                   <div className="text-4xl">{kid.avatar}</div>
                   <div>
