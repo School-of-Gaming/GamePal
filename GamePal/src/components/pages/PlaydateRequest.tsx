@@ -108,7 +108,7 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
             Potential Matches
           </h1>
           <p className="text-gray-700">
-            Review compatible playmates for your children
+            Incoming and outgoing playdates requests awaiting approval
           </p>
         </div>
 
@@ -142,13 +142,14 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
                 key={match.id}
                 className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
               >
-                <div className="flex gap-5">
-                  <div className="text-5xl p-4 bg-purple-50 rounded-full">
-                    {match.avatar}
-                  </div>
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* LEFT CONTENT */}
+                  <div className="flex gap-5 flex-1">
+                    <div className="text-5xl p-4 bg-purple-50 rounded-full">
+                      {match.avatar}
+                    </div>
 
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex-1 space-y-4">
                       <div>
                         <h3 className="text-xl font-bold text-gray-900">
                           {match.childName}
@@ -157,34 +158,46 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
                           Age {match.childAge}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        className="bg-purple-600 hover:bg-purple-700"
-                        onClick={() => setViewChild(matchToChild(match))}
-                      >
-                        View Details
-                      </Button>
-                    </div>
 
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 mb-2">
-                        Common with your child:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {match.commonTags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 mb-2">
+                          Common with your child:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {match.commonTags.map((tag, i) => (
+                            <span
+                              key={i}
+                              className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    <span className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-1 rounded-full text-xs font-bold">
-                      Awaiting their approval
-                    </span>
+                      <span className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-1 rounded-full text-xs font-bold">
+                        Awaiting their approval
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* RIGHT BUTTONS */}
+                  <div className="flex flex-col gap-3 mt-3 lg:mt-0 min-w-[200px]">
+                    <Button
+                      size="sm"
+                      className="bg-[#faa901] text-black hover:bg-[#f4b625] rounded-xl py-5 font-bold w-full"
+                      onClick={() => setViewChild(matchToChild(match))}
+                    >
+                      View Details
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="border-red-500 text-red-500 hover:bg-red-50 rounded-xl py-5 font-bold w-full"
+                      onClick={() => toggleLike(match.id)}
+                    >
+                      Unlike
+                    </Button>
                   </div>
                 </div>
               </div>

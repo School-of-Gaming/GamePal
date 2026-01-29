@@ -3,10 +3,21 @@ import type { Parent, Child } from "../../App";
 import { ParentNav } from "../Nav";
 import { Button } from "../ui/button";
 import { ChildDetailsModal } from "../child/ChildDetailsModal";
+import { supabase } from "../../supabase/client";
 
 type MatchmakingProps = {
   parent: Parent;
   onBack: () => void;
+};
+
+type MatchChild = {
+  id: string;
+  name: string;
+  age: number;
+  bio?: string;
+  avatar?: string;          
+  commonTags?: string[];    
+  matchPercentage: number;  
 };
 
 export function Matchmaking({ parent, onBack }: MatchmakingProps) {
@@ -15,8 +26,8 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
    
 
   const [filters, setFilters] = useState({
-    ageMin: 3,
-    ageMax: 12,
+    ageMin: 5,
+    ageMax: 13,
     game: "",
     language: "",
     hobby: "",
@@ -26,77 +37,120 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
     availability: "",
   });
 
-  const getCompatibility = (kid: Child) => {
-    const baseScore = 60;
-    const tagBonus = kid.commonTags?.length
-      ? kid.commonTags.length * 5
-      : 0;
+  const [ageOptions, setAgeOptions] = useState<{ min: number; max: number }[]>([]);
+  const [gameOptions, setGameOptions] = useState<{ id: string; name: string }[]>([]);
+  const [languageOptions, setLanguageOptions] = useState<{ id: string; name: string }[]>([]);
+  const [hobbyOptions, setHobbyOptions] = useState<{ id: string; name: string }[]>([]);
+  const [interestOptions, setInterestOptions] = useState<{ id: string; name: string }[]>([]);
+  const [playTypeOptions, setPlayTypeOptions] = useState<{ id: string; name: string }[]>([]);
+  const [themeOptions, setThemeOptions] = useState<{ id: string; name: string }[]>([]);
+  const [availabilityOptions, setAvailabilityOptions] = useState<{ id: string; name: string }[]>([]);
 
-    return Math.min(baseScore + tagBonus, 98);
-  };
 
-  // Dummy matched kids
-  const matchedKids: Child[] = [
-    {
-      id: "m1",
-      name: "Lia",
-      age: 8,
-      avatar: "🐱",
-      bio: "Love building in Minecraft and catching Pokémon!",
-      commonTags: ['Roblox', 'English', 'Gaming',  'Short Sessions'],
-      games: ['Minecraft', 'Roblox', 'Pokémon'],
-      language: ['English', 'Spanish'],
-      hobbies: ['Drawing', 'Gaming', 'Reading'],
-      interests: ['Adventure', 'Animals', 'Technology'],
-      playType: ['Co-op', 'Creative', 'Casual'],
-      theme: ["Fantasy"],
-      availability: ["Short Sessions", "Weekends"],
-    },
-    {
-      id: "m2",
-      name: 'Jordan',
-      age: 9,
-      avatar: '🦊',
-      bio: 'Looking for friends to play Animal Crossing with!',
-      commonTags: ['English', 'Gaming', 'Weekdays (After School)' ],
-      games: ['Animal Crossing', 'Minecraft'],
-      language: ['English'],
-      hobbies: ['Collecting', 'Gaming'],
-      interests: ['Nature', 'Art'],
-      playType: ['Co-op', 'Casual'],
-      theme: ['horror'],
-      availability: ["Weekdays (After School)", "Evening"],
-    },
-    {
-      id: "m3",
-      name: 'Sam',
-      age: 10,
-      avatar: '🐼',
-      bio: 'Nintendo fan! Love adventure games.',
-      commonTags: ['English', 'Gaming', 'Fantasy'],
-      games: ['Mario', 'Zelda'],
-      language: ['English'],
-      hobbies: ['Gaming', 'Reading'],
-      interests: ['Fantasy', 'Adventure'],
-      playType: ['Single Player', 'Casual'],
-      theme: ["Fantasy"], 
-      availability: ["Afternoon"],
-    }
-  ];
+  const [matchedKids, setMatchedKids] = useState<MatchChild[]>([]);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      const fetchTable = async (table: string) => {
+        const { data, error } = await supabase.from(table).select("id,name");
+        if (error) return [];
+        return (data || []).map((row: any) => ({ id: row.id, name: row.name }));
+      };
+      setAgeOptions([
+        { min: 5, max: 7 },
+        { min: 8, max: 10 },
+        { min: 11, max: 13 }
+      ]); 
+      setGameOptions(await fetchTable("games"));
+      setLanguageOptions(await fetchTable("languages"));
+      setHobbyOptions(await fetchTable("hobbies"));
+      setInterestOptions(await fetchTable("interests"));
+      setPlayTypeOptions(await fetchTable("play_types"));
+      setThemeOptions(await fetchTable("themes"));
+      setAvailabilityOptions(await fetchTable("availability"));
+    };
+
+    fetchOptions();
+  }, []);
+
+  // ------------------- FETCH MATCHES -------------------
+  useEffect(() => {
+    if (!selectedChildId) return;
+
+    const fetchMatches = async () => {
+      let query = supabase
+        .from("child_matches")
+        .select("*")
+        .eq("child_a_id", selectedChildId)
+        .order("match_percentage", { ascending: false });
+
+      // Apply filters dynamically
+      if (filters.ageMin || filters.ageMax) {
+        query = query.gte("child_b_age", filters.ageMin).lte("child_b_age", filters.ageMax);
+      }
+      if (filters.game) query = query.contains("child_b_games_ids", [filters.game]);
+      if (filters.game) query = query.contains("child_b_games_ids", [filters.game]);
+      if (filters.language) query = query.contains("child_b_language_ids", [filters.language]);
+      if (filters.hobby) query = query.contains("child_b_hobbies_ids", [filters.hobby]);
+      if (filters.interest) query = query.contains("child_b_interests_ids", [filters.interest]);
+      if (filters.playType) query = query.contains("child_b_play_type_ids", [filters.playType]);
+      if (filters.theme) query = query.contains("child_b_theme_ids", [filters.theme]);
+      if (filters.availability) query = query.contains("child_b_availability_ids", [filters.availability]);
+
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Match fetch error:", error);
+        return;
+      }
+
+      const formatted: MatchChild[] = (data || []).map((row: any) => ({
+        id: row.child_b_id,
+        name: row.child_b_name,
+        age: row.child_b_age,
+        avatar: row.child_b_avatar,
+        bio: row.child_b_bio,
+        commonTags: Object.values(row.matched_attributes || {}).flatMap(
+          (v: any) => (Array.isArray(v) ? v.map(String) : [String(v)])
+        ),
+        matchPercentage: row.match_percentage,
+      }));
+
+      setMatchedKids(formatted);
+    };
+
+    fetchMatches();
+  }, [selectedChildId, filters]);
 
   // State
   const [viewChild, setViewChild] = useState<Child | null>(null);
   const [likedKids, setLikedKids] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState("");
 
-  const toggleLike = (kidId: string) => {
-    const liked = likedKids.includes(kidId);
-    setLikedKids(prev =>
-      liked ? prev.filter(id => id !== kidId) : [...prev, kidId]
+  const toggleLike = async (kidId: string) => {
+    const alreadyLiked = likedKids.includes(kidId);
+
+    if (alreadyLiked) {
+      await supabase
+        .from("child_likes")
+        .delete()
+        .eq("child_a_id", selectedChildId)
+        .eq("child_b_id", kidId);
+    } else {
+      await supabase.from("child_likes").insert({
+        child_a_id: selectedChildId,
+        child_b_id: kidId,
+        status: "pending",
+      });
+    }
+
+    setLikedKids((prev) =>
+      alreadyLiked ? prev.filter((id) => id !== kidId) : [...prev, kidId]
     );
 
     setToastMessage(
-      liked ? "Removed like" : `You liked ${matchedKids.find(k => k.id === kidId)?.name}!`
+      alreadyLiked ? "Removed like" : "Profile liked 💜"
     );
   };
 
@@ -112,7 +166,9 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
-      <ParentNav parent={parent} />
+      <ParentNav parent={parent} onLogout={function (): void {
+        throw new Error("Function not implemented.");
+      } } />
 
       <main className="flex-1 w-full p-6 overflow-auto">
 
@@ -140,11 +196,13 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
             <div>
             <label className="text-sm font-semibold text-gray-700">Finding matches for</label>
             <select
+                value={selectedChildId}
+                onChange={(e) => setSelectedChildId(e.target.value)}
                 className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500 focus:outline-none"
             >
                 {parent.children.map((child) => (
                 <option key={child.id} value={child.id}>
-                    {child.avatar} {child.name}
+                    {child.name}
                 </option>
                 ))}
             </select>
@@ -153,73 +211,91 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
             {/* Age Range */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Age Range</label>
-            <select className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
-                <option>All Ages</option>
-                <option>5–7</option>
-                <option>8–10</option>
-                <option>11–13</option>
+            <select 
+              value={`${filters.ageMin}-${filters.ageMax}`}
+              onChange={(e) => {
+                const [min, max] = e.target.value.split("-").map(Number);
+                setFilters({ ...filters, ageMin: min, ageMax: max });
+              }}
+              className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
+                <option value="5-13">All Ages</option>
+                {ageOptions.map((r) => (
+                <option key={`${r.min}-${r.max}`} value={`${r.min}-${r.max}`}>
+                  {r.min}–{r.max}
+                </option>
+              ))}
             </select>
             </div>
 
             {/* Game Interest */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Game Interest</label>
-            <select className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
-                <option>All Games</option>
-                <option>Minecraft</option>
-                <option>Roblox</option>
+            <select 
+              value={filters.game}
+              onChange={(e) => setFilters({ ...filters, game: e.target.value })}
+              className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
+                <option value="">All Games</option>
+                {gameOptions.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
             </div>
 
             {/* Language */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Language</label>
-            <select className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
-                <option>English</option>
-                <option>Spanish</option>
-                <option>French</option>
+            <select 
+              value={filters.language}
+              onChange={(e) => setFilters({ ...filters, language: e.target.value })}
+              className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
+                <option value="">All Languages</option>
+                {languageOptions.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
             </div>
 
             {/* Hobbies */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Hobbies</label>
-            <select className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
-                <option>All Hobbies</option>
-                <option>Drawing</option>
-                <option>Outdoor Play</option>
-                <option>Building</option>
+            <select 
+              value={filters.hobby}
+              onChange={(e) => setFilters({ ...filters, hobby: e.target.value })}
+              className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
+                <option value="">All Hobbies</option>
+                {hobbyOptions.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
             </select>
             </div>
 
             {/* Interests */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Interests</label>
-            <select className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
-                <option>All Interests</option>
-                <option>Animals</option>
-                <option>Science</option>
+            <select 
+              value={filters.interest}
+              onChange={(e) => setFilters({ ...filters, interest: e.target.value })}
+              className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
+                <option value="">All Interests</option>
+                {interestOptions.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
             </select>
             </div>
 
             {/* Play Type */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Play Type</label>
-            <select className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
-                <option>All Play Types</option>
-                <option>Creative</option>
-                <option>Casual</option>
-                <option>Co-op</option>
+            <select 
+              value={filters.playType}
+              onChange={(e) => setFilters({ ...filters, playType: e.target.value })}
+              className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
+                <option value="">All Play Types</option>
+                {playTypeOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             </div>
 
             {/* Theme */}
             <div>
             <label className="text-sm font-semibold text-gray-700">Theme</label>
-            <select className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
-                <option>All Themes</option>
-                <option>Fantasy</option>
-                <option>Adventure</option>
+            <select 
+              value={filters.theme}
+              onChange={(e) => setFilters({ ...filters, theme: e.target.value })}
+              className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
+                <option value="">All Themes</option>
+                {themeOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
             </div>
 
@@ -229,16 +305,12 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                 Availability
               </label>
               <select
+                value={filters.availability}
+                onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
                 className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500"
               >
-                <option>Any Time</option>
-                <option>Weekdays (After School)</option>
-                <option>Weekdays (Evening)</option>
-                <option>Weekends</option>
-                <option>Morning</option>
-                <option>Afternoon</option>
-                <option>Evening</option>
-                <option>Flexible</option>
+                <option value="">Any Time</option>
+                {availabilityOptions.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
 
@@ -259,7 +331,7 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                   className="flex items-center justify-between gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border"
                 >
                   <div
-                    onClick={() => setViewChild(kid)}
+                    onClick={() => setViewChild(parent.children.find(c => c.id === kid.id) || null)}
                     className="flex items-center gap-3 cursor-pointer"
                   >
                     <span className="text-3xl">{kid.avatar}</span>
@@ -295,7 +367,7 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
               >
                 {/* Compatibility Badge */}
                 <div className="absolute top-3 right-3 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
-                  {getCompatibility(kid)}% Match
+                  {kid.matchPercentage}% Match
                 </div>
                 <div className="flex items-center space-x-3 mb-2 text-black">
                   <div className="text-4xl">{kid.avatar}</div>
@@ -324,7 +396,7 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                 <Button
                   size="sm"
                   className="mt-4 w-full bg-purple-600 hover:bg-purple-700"
-                  onClick={() => setViewChild(kid)}
+                  onClick={() => setViewChild(parent.children.find(c => c.id === kid.id) || null)}
                 >
                   View Details
                 </Button>
