@@ -17,7 +17,14 @@ type MatchChild = {
   bio?: string;
   avatar?: string;          
   commonTags?: string[];    
-  matchPercentage: number;  
+  matchPercentage: number;
+  games?: string[];
+  languages?: string[];
+  hobbies?: string[];
+  interests?: string[];
+  playTypes?: string[];
+  themes?: string[];
+  availability?: string[];  
 };
 
 export function Matchmaking({ parent, onBack }: MatchmakingProps) {
@@ -38,84 +45,141 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
   });
 
   const [ageOptions, setAgeOptions] = useState<{ min: number; max: number }[]>([]);
-  const [gameOptions, setGameOptions] = useState<{ id: string; name: string }[]>([]);
-  const [languageOptions, setLanguageOptions] = useState<{ id: string; name: string }[]>([]);
-  const [hobbyOptions, setHobbyOptions] = useState<{ id: string; name: string }[]>([]);
-  const [interestOptions, setInterestOptions] = useState<{ id: string; name: string }[]>([]);
-  const [playTypeOptions, setPlayTypeOptions] = useState<{ id: string; name: string }[]>([]);
-  const [themeOptions, setThemeOptions] = useState<{ id: string; name: string }[]>([]);
-  const [availabilityOptions, setAvailabilityOptions] = useState<{ id: string; name: string }[]>([]);
+  const [gameOptions, setGameOptions] = useState<string[]>([]);
+  const [languageOptions, setLanguageOptions] = useState<string[]>([]);
+  const [hobbyOptions, setHobbyOptions] = useState<string[]>([]);
+  const [interestOptions, setInterestOptions] = useState<string[]>([]);
+  const [playTypeOptions, setPlayTypeOptions] = useState<string[]>([]);
+  const [themeOptions, setThemeOptions] = useState<string[]>([]);
+  const [availabilityOptions, setAvailabilityOptions] = useState<string[]>([]);
 
+const [gameOptionsMap, setGameOptionsMap] = useState<Record<string,string>>({});
+  const [languageOptionsMap, setLanguageOptionsMap] = useState<Record<string,string>>({});
+  const [hobbyOptionsMap, setHobbyOptionsMap] = useState<Record<string,string>>({});
+  const [interestOptionsMap, setInterestOptionsMap] = useState<Record<string,string>>({});
+  const [playTypeOptionsMap, setPlayTypeOptionsMap] = useState<Record<string,string>>({});
+  const [themeOptionsMap, setThemeOptionsMap] = useState<Record<string,string>>({});
+  const [availabilityOptionsMap, setAvailabilityOptionsMap] = useState<Record<string,string>>({});
 
   const [matchedKids, setMatchedKids] = useState<MatchChild[]>([]);
 
   useEffect(() => {
+    const fetchOptionsMap = async (table: string) => {
+      const { data, error } = await supabase.from(table).select("id,name");
+      if (error || !data) return {};
+      return data.reduce((acc: Record<string,string>, row: any) => {
+        acc[row.id] = row.name;
+        return acc;
+      }, {});
+    };
+
     const fetchOptions = async () => {
-      const fetchTable = async (table: string) => {
-        const { data, error } = await supabase.from(table).select("id,name");
-        if (error) return [];
-        return (data || []).map((row: any) => ({ id: row.id, name: row.name }));
-      };
       setAgeOptions([
         { min: 5, max: 7 },
         { min: 8, max: 10 },
         { min: 11, max: 13 }
-      ]); 
-      setGameOptions(await fetchTable("games"));
-      setLanguageOptions(await fetchTable("languages"));
-      setHobbyOptions(await fetchTable("hobbies"));
-      setInterestOptions(await fetchTable("interests"));
-      setPlayTypeOptions(await fetchTable("play_types"));
-      setThemeOptions(await fetchTable("themes"));
-      setAvailabilityOptions(await fetchTable("availability"));
+      ]);
+
+      const gameMap = await fetchOptionsMap("games");
+      setGameOptionsMap(gameMap);
+      setGameOptions(Object.values(gameMap));
+
+      const langMap = await fetchOptionsMap("languages");
+      setLanguageOptionsMap(langMap);
+      setLanguageOptions(Object.values(langMap));
+
+      const hobbyMap = await fetchOptionsMap("hobbies_lookup");
+      setHobbyOptionsMap(hobbyMap);
+      setHobbyOptions(Object.values(hobbyMap));
+
+      const interestMap = await fetchOptionsMap("interests_lookup");
+      setInterestOptionsMap(interestMap);
+      setInterestOptions(Object.values(interestMap));
+
+      const playTypeMap = await fetchOptionsMap("play_types");
+      setPlayTypeOptionsMap(playTypeMap);
+      setPlayTypeOptions(Object.values(playTypeMap));
+
+      const themeMap = await fetchOptionsMap("game_themes");
+      setThemeOptionsMap(themeMap);
+      setThemeOptions(Object.values(themeMap));
+
+      const availMap = await fetchOptionsMap("availability_options");
+      setAvailabilityOptionsMap(availMap);
+      setAvailabilityOptions(Object.values(availMap));
     };
 
     fetchOptions();
   }, []);
 
   // ------------------- FETCH MATCHES -------------------
-  useEffect(() => {
+   useEffect(() => {
     if (!selectedChildId) return;
 
     const fetchMatches = async () => {
-      let query = supabase
-        .from("child_matches")
+      const { data, error } = await supabase
+        .from("child_match_results")
         .select("*")
         .eq("child_a_id", selectedChildId)
         .order("match_percentage", { ascending: false });
-
-      // Apply filters dynamically
-      if (filters.ageMin || filters.ageMax) {
-        query = query.gte("child_b_age", filters.ageMin).lte("child_b_age", filters.ageMax);
-      }
-      if (filters.game) query = query.contains("child_b_games_ids", [filters.game]);
-      if (filters.game) query = query.contains("child_b_games_ids", [filters.game]);
-      if (filters.language) query = query.contains("child_b_language_ids", [filters.language]);
-      if (filters.hobby) query = query.contains("child_b_hobbies_ids", [filters.hobby]);
-      if (filters.interest) query = query.contains("child_b_interests_ids", [filters.interest]);
-      if (filters.playType) query = query.contains("child_b_play_type_ids", [filters.playType]);
-      if (filters.theme) query = query.contains("child_b_theme_ids", [filters.theme]);
-      if (filters.availability) query = query.contains("child_b_availability_ids", [filters.availability]);
-
-
-      const { data, error } = await query;
 
       if (error) {
         console.error("Match fetch error:", error);
         return;
       }
 
-      const formatted: MatchChild[] = (data || []).map((row: any) => ({
-        id: row.child_b_id,
-        name: row.child_b_name,
-        age: row.child_b_age,
-        avatar: row.child_b_avatar,
-        bio: row.child_b_bio,
-        commonTags: Object.values(row.matched_attributes || {}).flatMap(
-          (v: any) => (Array.isArray(v) ? v.map(String) : [String(v)])
-        ),
-        matchPercentage: row.match_percentage,
-      }));
+        let formatted: MatchChild[] = (data || []).map((row: any) => {
+        const commonTags: string[] = [];
+        const attrMap: Record<string, Record<string,string>> = {
+          games: gameOptionsMap,
+          languages: languageOptionsMap,
+          hobbies: hobbyOptionsMap,
+          interests: interestOptionsMap,
+          playTypes: playTypeOptionsMap,
+          themes: themeOptionsMap,
+          availability: availabilityOptionsMap,
+        };
+
+        const matchedAttrs = row.matched_attributes || {};
+        for (const [key, ids] of Object.entries(matchedAttrs)) {
+          const values = Array.isArray(ids) ? ids : [ids];
+          values.forEach((id: string) => {
+            const name = attrMap[key]?.[id] || id; 
+            commonTags.push(name);
+          });
+        }
+
+        return {
+          id: row.child_b_id,
+          name: row.child_b_name,
+          age: row.child_b_age,
+          avatar: row.child_b_avatar,
+          bio: row.child_b_bio,
+          commonTags,
+          matchPercentage: row.match_percentage,
+          games: row.games_ids,
+          languages: row.language_ids,
+          hobbies: row.hobbies_ids,
+          interests: row.interests_ids,
+          playTypes: row.play_type_ids,
+          themes: row.theme_ids,
+          availability: row.availability_ids,
+        };
+      });
+
+      // ------------------- APPLY FILTERS -------------------
+      formatted = formatted.filter((kid) => {
+        if (kid.age < filters.ageMin || kid.age > filters.ageMax) return false;
+        if (filters.game && !kid.games?.includes(filters.game)) return false;
+        if (filters.language && !kid.languages?.includes(filters.language)) return false;
+        if (filters.hobby && !kid.hobbies?.includes(filters.hobby)) return false;
+        if (filters.interest && !kid.interests?.includes(filters.interest)) return false;
+        if (filters.playType && !kid.playTypes?.includes(filters.playType)) return false;
+        if (filters.theme && !kid.themes?.includes(filters.theme)) return false;
+        if (filters.availability && !kid.availability?.includes(filters.availability))
+          return false;
+        return true;
+      });
 
       setMatchedKids(formatted);
     };
@@ -235,7 +299,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
               onChange={(e) => setFilters({ ...filters, game: e.target.value })}
               className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
                 <option value="">All Games</option>
-                {gameOptions.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                {gameOptions.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
             </select>
             </div>
 
@@ -247,7 +315,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
               onChange={(e) => setFilters({ ...filters, language: e.target.value })}
               className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
                 <option value="">All Languages</option>
-                {languageOptions.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                {languageOptions.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
             </select>
             </div>
 
@@ -259,7 +331,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
               onChange={(e) => setFilters({ ...filters, hobby: e.target.value })}
               className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
                 <option value="">All Hobbies</option>
-                {hobbyOptions.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                {hobbyOptions.map((h) => (
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
+                ))}
             </select>
             </div>
 
@@ -271,7 +347,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
               onChange={(e) => setFilters({ ...filters, interest: e.target.value })}
               className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
                 <option value="">All Interests</option>
-                {interestOptions.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                {interestOptions.map((i) => (
+                  <option key={i} value={i}>
+                    {i}
+                  </option>
+                ))}
             </select>
             </div>
 
@@ -283,7 +363,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
               onChange={(e) => setFilters({ ...filters, playType: e.target.value })}
               className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
                 <option value="">All Play Types</option>
-                {playTypeOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {playTypeOptions.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
             </select>
             </div>
 
@@ -295,7 +379,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
               onChange={(e) => setFilters({ ...filters, theme: e.target.value })}
               className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500">
                 <option value="">All Themes</option>
-                {themeOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {themeOptions.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
             </select>
             </div>
 
@@ -310,7 +398,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                 className="w-full mt-1 p-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 focus:ring-2 focus:ring-yellow-500"
               >
                 <option value="">Any Time</option>
-                {availabilityOptions.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                {availabilityOptions.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -383,9 +475,9 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
 
                 <p className="text-xs font-semibold text-gray-500 mb-2">Common with {selectedChild?.name}:</p>
                 <div className="flex flex-wrap gap-2">
-                  {kid.commonTags?.map((tag: string, index: number) => (
+                  {kid.commonTags?.map((tag, idx) => (
                     <span
-                      key={index}
+                      key={idx}
                       className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
                     >
                       {tag}
