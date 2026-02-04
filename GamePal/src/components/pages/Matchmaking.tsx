@@ -10,21 +10,21 @@ type MatchmakingProps = {
   onBack: () => void;
 };
 
-type MatchChild = {
+export type MatchChild = {
   id: string;
   name: string;
   age: number;
   bio?: string;
-  avatar?: string;          
-  commonTags?: string[];    
+  avatar?: string;              
   matchPercentage: number;
-  games?: string[];
-  languages?: string[];
-  hobbies?: string[];
-  interests?: string[];
-  playTypes?: string[];
-  themes?: string[];
-  availability?: string[];  
+  games: string[];
+  languages: string[];
+  hobbies: string[];
+  interests: string[];
+  play_types: string[];
+  themes: string[];
+  availability: string[];
+  matched_attributes: Record<string, string[]>; 
 };
 
 export function Matchmaking({ parent, onBack }: MatchmakingProps) {
@@ -44,7 +44,11 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
     availability: "",
   });
 
-  const [ageOptions, setAgeOptions] = useState<{ min: number; max: number }[]>([]);
+  const [ageOptions] = useState([
+    { min: 5, max: 7 },
+    { min: 8, max: 10 },
+    { min: 11, max: 13 },
+  ]);
   const [gameOptions, setGameOptions] = useState<string[]>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>([]);
   const [hobbyOptions, setHobbyOptions] = useState<string[]>([]);
@@ -53,63 +57,30 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
   const [themeOptions, setThemeOptions] = useState<string[]>([]);
   const [availabilityOptions, setAvailabilityOptions] = useState<string[]>([]);
 
-const [gameOptionsMap, setGameOptionsMap] = useState<Record<string,string>>({});
-  const [languageOptionsMap, setLanguageOptionsMap] = useState<Record<string,string>>({});
-  const [hobbyOptionsMap, setHobbyOptionsMap] = useState<Record<string,string>>({});
-  const [interestOptionsMap, setInterestOptionsMap] = useState<Record<string,string>>({});
-  const [playTypeOptionsMap, setPlayTypeOptionsMap] = useState<Record<string,string>>({});
-  const [themeOptionsMap, setThemeOptionsMap] = useState<Record<string,string>>({});
-  const [availabilityOptionsMap, setAvailabilityOptionsMap] = useState<Record<string,string>>({});
-
   const [matchedKids, setMatchedKids] = useState<MatchChild[]>([]);
 
+  // ------------------- FETCH FILTER -------------------
   useEffect(() => {
-    const fetchOptionsMap = async (table: string) => {
-      const { data, error } = await supabase.from(table).select("id,name");
-      if (error || !data) return {};
-      return data.reduce((acc: Record<string,string>, row: any) => {
-        acc[row.id] = row.name;
-        return acc;
-      }, {});
+    const fetchOptions = async (
+      table: string,
+      setter: (v: string[]) => void
+    ) => {
+      const { data, error } = await supabase
+        .from(table)
+        .select("name");
+
+      if (!error && data) {
+        setter(data.map((d: any) => d.name));
+      }
     };
 
-    const fetchOptions = async () => {
-      setAgeOptions([
-        { min: 5, max: 7 },
-        { min: 8, max: 10 },
-        { min: 11, max: 13 }
-      ]);
-
-      const gameMap = await fetchOptionsMap("games");
-      setGameOptionsMap(gameMap);
-      setGameOptions(Object.values(gameMap));
-
-      const langMap = await fetchOptionsMap("languages");
-      setLanguageOptionsMap(langMap);
-      setLanguageOptions(Object.values(langMap));
-
-      const hobbyMap = await fetchOptionsMap("hobbies_lookup");
-      setHobbyOptionsMap(hobbyMap);
-      setHobbyOptions(Object.values(hobbyMap));
-
-      const interestMap = await fetchOptionsMap("interests_lookup");
-      setInterestOptionsMap(interestMap);
-      setInterestOptions(Object.values(interestMap));
-
-      const playTypeMap = await fetchOptionsMap("play_types");
-      setPlayTypeOptionsMap(playTypeMap);
-      setPlayTypeOptions(Object.values(playTypeMap));
-
-      const themeMap = await fetchOptionsMap("game_themes");
-      setThemeOptionsMap(themeMap);
-      setThemeOptions(Object.values(themeMap));
-
-      const availMap = await fetchOptionsMap("availability_options");
-      setAvailabilityOptionsMap(availMap);
-      setAvailabilityOptions(Object.values(availMap));
-    };
-
-    fetchOptions();
+    fetchOptions("games", setGameOptions);
+    fetchOptions("languages", setLanguageOptions);
+    fetchOptions("hobbies_lookup", setHobbyOptions);
+    fetchOptions("interests_lookup", setInterestOptions);
+    fetchOptions("play_types", setPlayTypeOptions);
+    fetchOptions("game_themes", setThemeOptions);
+    fetchOptions("availability_options", setAvailabilityOptions);
   }, []);
 
   // ------------------- FETCH MATCHES -------------------
@@ -128,55 +99,35 @@ const [gameOptionsMap, setGameOptionsMap] = useState<Record<string,string>>({});
         return;
       }
 
-        let formatted: MatchChild[] = (data || []).map((row: any) => {
-        const commonTags: string[] = [];
-        const attrMap: Record<string, Record<string,string>> = {
-          games: gameOptionsMap,
-          languages: languageOptionsMap,
-          hobbies: hobbyOptionsMap,
-          interests: interestOptionsMap,
-          playTypes: playTypeOptionsMap,
-          themes: themeOptionsMap,
-          availability: availabilityOptionsMap,
-        };
+        let formatted: MatchChild[] = (data || []).map((row: any) => ({
+        id: row.child_b_id,
+        name: row.child_b_name,
+        age: row.child_b_age,
+        bio: row.child_b_bio,
+        avatar: row.child_b_avatar,
+        matchPercentage: row.match_percentage,
 
-        const matchedAttrs = row.matched_attributes || {};
-        for (const [key, ids] of Object.entries(matchedAttrs)) {
-          const values = Array.isArray(ids) ? ids : [ids];
-          values.forEach((id: string) => {
-            const name = attrMap[key]?.[id] || id; 
-            commonTags.push(name);
-          });
-        }
+        games: row.games || [],
+        languages: row.languages || [],
+        hobbies: row.hobbies || [],
+        interests: row.interests || [],
+        play_types: row.play_types || [],
+        themes: row.themes || [],
+        availability: row.availability || [],
 
-        return {
-          id: row.child_b_id,
-          name: row.child_b_name,
-          age: row.child_b_age,
-          avatar: row.child_b_avatar,
-          bio: row.child_b_bio,
-          commonTags,
-          matchPercentage: row.match_percentage,
-          games: row.games_ids,
-          languages: row.language_ids,
-          hobbies: row.hobbies_ids,
-          interests: row.interests_ids,
-          playTypes: row.play_type_ids,
-          themes: row.theme_ids,
-          availability: row.availability_ids,
-        };
-      });
+        matched_attributes: row.matched_attributes || {},
+      }));
 
       // ------------------- APPLY FILTERS -------------------
       formatted = formatted.filter((kid) => {
         if (kid.age < filters.ageMin || kid.age > filters.ageMax) return false;
         if (filters.game && !kid.games?.includes(filters.game)) return false;
         if (filters.language && !kid.languages?.includes(filters.language)) return false;
-        if (filters.hobby && !kid.hobbies?.includes(filters.hobby)) return false;
-        if (filters.interest && !kid.interests?.includes(filters.interest)) return false;
-        if (filters.playType && !kid.playTypes?.includes(filters.playType)) return false;
-        if (filters.theme && !kid.themes?.includes(filters.theme)) return false;
-        if (filters.availability && !kid.availability?.includes(filters.availability))
+        if (filters.hobby && !kid.hobbies.includes(filters.hobby)) return false;
+        if (filters.interest && !kid.interests.includes(filters.interest)) return false;
+        if (filters.playType && !kid.play_types.includes(filters.playType)) return false;
+        if (filters.theme && !kid.themes.includes(filters.theme)) return false;
+        if (filters.availability && !kid.availability.includes(filters.availability))
           return false;
         return true;
       });
@@ -188,7 +139,7 @@ const [gameOptionsMap, setGameOptionsMap] = useState<Record<string,string>>({});
   }, [selectedChildId, filters]);
 
   // State
-  const [viewChild, setViewChild] = useState<Child | null>(null);
+  const [viewChild, setViewChild] = useState<Child | MatchChild | null>(null);
   const [likedKids, setLikedKids] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -423,7 +374,7 @@ const [gameOptionsMap, setGameOptionsMap] = useState<Record<string,string>>({});
                   className="flex items-center justify-between gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border"
                 >
                   <div
-                    onClick={() => setViewChild(parent.children.find(c => c.id === kid.id) || null)}
+                    onClick={() => setViewChild(kid)}
                     className="flex items-center gap-3 cursor-pointer"
                   >
                     <span className="text-3xl">{kid.avatar}</span>
@@ -475,7 +426,7 @@ const [gameOptionsMap, setGameOptionsMap] = useState<Record<string,string>>({});
 
                 <p className="text-xs font-semibold text-gray-500 mb-2">Common with {selectedChild?.name}:</p>
                 <div className="flex flex-wrap gap-2">
-                  {kid.commonTags?.map((tag, idx) => (
+                  {Object.values(kid.matched_attributes).flat().map((tag, idx) => (
                     <span
                       key={idx}
                       className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
@@ -488,7 +439,7 @@ const [gameOptionsMap, setGameOptionsMap] = useState<Record<string,string>>({});
                 <Button
                   size="sm"
                   className="mt-4 w-full bg-purple-600 hover:bg-purple-700"
-                  onClick={() => setViewChild(parent.children.find(c => c.id === kid.id) || null)}
+                  onClick={() => setViewChild(kid)}
                 >
                   View Details
                 </Button>

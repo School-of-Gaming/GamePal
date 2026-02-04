@@ -1,22 +1,22 @@
 import { Button } from "../ui/button";
 import type { Child } from "../../App";
+import type { MatchChild } from "../pages/Matchmaking"
+
 
 type ChildDetailsModalProps = {
-  child: Child;
+  child: Child | MatchChild;
   onClose: () => void;
 };
 
 export function ChildDetailsModal({ child, onClose }: ChildDetailsModalProps) {
-  const games = child.games_ids || [];
-  const language = child.language_ids || [];
-  const hobbies = child.hobbies_ids || [];
-  const interests = child.interests_ids || [];
-  const playType = child.play_type_ids || [];
-  const theme = child.theme_ids || [];
-  const availability = child.availability_ids || [];
-
-  // Use emoji or fallback
-  const avatar = child.avatar_id ? child.avatar_id : "👶"
+  const games = "games" in child ? child.games : child.games_ids ?? [];
+  const language = "languages" in child ? child.languages : child.language_ids ?? [];
+  const hobbies = "hobbies" in child ? child.hobbies : child.hobbies_ids ?? [];
+  const interests = "interests" in child ? child.interests : child.interests_ids ?? [];
+  const playType = "play_types" in child ? child.play_types : child.play_type_ids ?? [];
+  const theme = "themes" in child ? child.themes : child.theme_ids ?? [];
+  const availability = "availability" in child ? child.availability : child.availability_ids ?? [];
+  const avatar =  "avatar" in child ? child.avatar : "emoji" in child ? (child as any).emoji : "🧒";
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl relative max-h-[85vh] flex flex-col">
