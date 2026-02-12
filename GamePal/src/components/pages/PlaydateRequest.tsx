@@ -1,25 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, X, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { ParentNav } from "../Nav";
 import type { Parent } from "../../App";
 import type { Child } from "../../App";
 import { ChildDetailsModal } from "../child/ChildDetailsModal";
+import { supabase } from "../../supabase/client";
 
 type Match = {
-  id: string;
-  childName: string;
-  childAge: number;
-  avatar: string;
-  bio?: string;
-  games?: string[];
-  language?: string[];
-  hobbies?: string[];
-  interests?: string[];
-  playType?: string[];
-  theme?: string[];
-  commonTags: string[];
-  availability: string[];
+  like_id: string;
+  from_child: string;
+  to_child: string;
+  from_parent_id: string;   
+  to_parent_id: string; 
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  approved_at?: string;
+  child_b_name?: string;
+  child_b_age?: number;
+  child_b_bio?: string;
+  child_b_avatar?: string;
 };
 
 type PotentialMatchesProps = {
@@ -28,71 +28,103 @@ type PotentialMatchesProps = {
 };
 
 export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
-  const [outgoingLikes] = useState<Match[]>([
-    {
-      id: "1",
-      childName: "Jordan",
-      childAge: 9,
-      avatar: "🦊",
-      bio: "Loves Minecraft and drawing.",
-      games: ["Minecraft", "Roblox"],
-      language: ["English"],
-      hobbies: ["Drawing", "Gaming"],
-      interests: ["Adventure", "Animals"],
-      playType: ["Co-op", "Casual"],
-      theme: ["Fantasy"],
-      commonTags: ["Minecraft", "English", "Gaming", "Co-op"],
-      availability: ["Morning", "Afternoon"],
-    }
-  ]);
-
-  const [incomingLikes, setIncomingLikes] = useState<Match[]>([
-    {
-      id: "2",
-      childName: "Alex",
-      childAge: 10,
-      avatar: "🐱",
-      bio: "Enjoys Roblox and creative games.",
-      games: ["Roblox", "Fortnite"],
-      language: ["English", "Spanish"],
-      hobbies: ["Building", "Gaming"],
-      interests: ["Fantasy", "Creative"],
-      playType: ["Single Player", "Co-op"],
-      theme: ["Adventure"],
-      commonTags: ["Roblox", "Fantasy", "Creative", "English"],
-      availability: ["Morning", "Afternoon"],
-    },
-  ]);
-
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewChild, setViewChild] = useState<Child | null>(null);
 
-  const handleApprove = (id: string) => {
-    setIncomingLikes(prev => prev.filter(m => m.id !== id));
+   const fetchMatches = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("child_likes_dashboard")
+      .select("*")
+      .or(`from_parent_id.eq.${parent.id},to_parent_id.eq.${parent.id}`)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching matches:", error);
+    } else {
+      setMatches(data ?? []);
+    }
+    setLoading(false);
   };
 
-  const handleDecline = (id: string) => {
-    setIncomingLikes(prev => prev.filter(m => m.id !== id));
+  useEffect(() => {
+  const loadMatches = async () => {
+    await fetchMatches();
   };
 
+  loadMatches();
+
+  // subscribe to real-time updates
+  const subscription = supabase
+    .channel("public:child_likes_dashboard")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "child_likes" },
+      () => fetchMatches()
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(subscription); 
+  };
+}, [parent.id]);
+
+
+
+  // ------------------- APPROVE / DECLINE -------------------
+  const handleApprove = async (like_id: string) => {
+    const { error } = await supabase
+      .from("child_likes")
+      .update({ status: "approved", approved_at: new Date().toISOString() })
+      .eq("id", like_id);
+
+    if (error) console.error("Error approving like:", error);
+    else fetchMatches();
+  };
+
+  const handleDecline = async (like_id: string) => {
+    const { error } = await supabase
+      .from("child_likes")
+      .update({ status: "rejected" })
+      .eq("id", like_id);
+
+    if (error) console.error("Error declining like:", error);
+    else fetchMatches();
+  };
+
+  // ------------------- FILTER MATCHES -------------------
+  const outgoingLikes = matches.filter(
+    m => m.from_parent_id === parent.id && m.status === "pending"
+  );
+  const incomingLikes = matches.filter(
+    m => m.to_parent_id === parent.id && m.status === "pending"
+  );
+  //const approvedMatches = matches.filter(m => m.status === "approved");
+
+  // ------------------- MAP TO CHILD -------------------
   const matchToChild = (match: Match): Child => ({
-  id: match.id,
-  name: match.childName,
-  age: match.childAge,
-  avatar: match.avatar,
-  bio: match.bio ?? "",
-  games: match.games ?? [],
-  language: match.language ?? [],
-  hobbies: match.hobbies ?? [],
-  interests: match.interests ?? [],
-  playType: match.playType ?? [],
-  theme: match.theme ?? [],
-  availability: match.availability ?? [],
-});
+    id: match.to_child || match.from_child,
+    parent_id: parent.id,
+    name: match.child_b_name ?? "Unknown",
+    age: match.child_b_age ?? 0,
+    bio: match.child_b_bio ?? "",
+    games_ids: [],
+    language_ids: [],
+    hobbies_ids: [],
+    interests_ids: [],
+    play_type_ids: [],
+    theme_ids: [],
+    availability_ids: [],
+    avatar_id: match.child_b_avatar ?? "",
+  });
 
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
-      <ParentNav parent={parent} />
+      <ParentNav parent={parent} onLogout={function (): void {
+        throw new Error("Function not implemented.");
+      } } />
 
       <main className="flex-1 p-6 overflow-auto bg-[#f8f6fb]">
         <Button
@@ -105,7 +137,7 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
 
         <div className="mb-4">
           <h1 className="text-3xl font-bold text-gray-900">
-            Potential Matches
+            Playdate Request
           </h1>
           <p className="text-gray-700">
             Incoming and outgoing playdates requests awaiting approval
@@ -137,72 +169,40 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
               ❤️ Pending Their Approval
             </h2>
 
-            {outgoingLikes.map(match => (
-              <div
-                key={match.id}
-                className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
-              >
-                <div className="flex flex-col lg:flex-row gap-6">
-                  {/* LEFT CONTENT */}
-                  <div className="flex gap-5 flex-1">
-                    <div className="text-5xl p-4 bg-purple-50 rounded-full">
-                      {match.avatar}
-                    </div>
-
-                    <div className="flex-1 space-y-4">
+            {loading ? <p>Loading...</p> :
+              outgoingLikes.length === 0 ? <p>No outgoing likes.</p> :
+              outgoingLikes.map(match => (
+                <div key={match.like_id} className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex gap-5 flex-1 items-center">
+                      <div className="text-5xl p-4 bg-purple-50 rounded-full">
+                        {match.child_b_avatar}
+                      </div>
                       <div>
                         <h3 className="text-xl font-bold text-gray-900">
-                          {match.childName}
+                          {match.child_b_name}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          Age {match.childAge}
+                          Age {match.child_b_age}
                         </p>
+                        <span className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-1 rounded-full text-xs font-bold">
+                          Awaiting their approval
+                        </span>
                       </div>
-
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 mb-2">
-                          Common with your child:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {match.commonTags.map((tag, i) => (
-                            <span
-                              key={i}
-                              className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <span className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-1 rounded-full text-xs font-bold">
-                        Awaiting their approval
-                      </span>
                     </div>
-                  </div>
-
-                  {/* RIGHT BUTTONS */}
-                  <div className="flex flex-col gap-3 mt-3 lg:mt-0 min-w-[200px]">
                     <Button
                       size="sm"
-                      className="bg-[#faa901] text-black hover:bg-[#f4b625] rounded-xl py-5 font-bold w-full"
+                      className="bg-[#faa901] text-black hover:bg-[#f4b625] rounded-xl py-5 font-bold w-full lg:w-40"
                       onClick={() => setViewChild(matchToChild(match))}
                     >
                       View Details
                     </Button>
-
-                    <Button
-                      variant="outline"
-                      className="border-red-500 text-red-500 hover:bg-red-50 rounded-xl py-5 font-bold w-full"
-                      onClick={() => toggleLike(match.id)}
-                    >
-                      Unlike
-                    </Button>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            }
           </div>
+
 
           {/* Divider */}
           <div className="hidden lg:block absolute top-0 bottom-0 left-1/2 w-px bg-gray-800"></div>
@@ -214,68 +214,45 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
               ✅ Awaiting Your Approval
             </h2>
 
-            {incomingLikes.map((match) => (
-              <div
-                key={match.id}
-                className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
-              >
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <div className="flex gap-5 flex-1 flex-col">
-                    <div className="mb-2">
-                      <h3 className="text-xl font-bold text-gray-900">
-                        {match.childName}
-                      </h3>
-                      <p className="text-sm text-gray-500">Age {match.childAge}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 mb-2">
-                        Common with your child:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {match.commonTags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+            {loading ? <p>Loading...</p> :
+              incomingLikes.length === 0 ? <p>No incoming likes.</p> :
+              incomingLikes.map(match => (
+                <div key={match.like_id} className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex gap-5 flex-1 items-center">
+                      <div className="text-5xl p-4 bg-purple-50 rounded-full">
+                        {match.child_b_avatar}
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {match.child_b_name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Age {match.child_b_age}
+                        </p>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="flex flex-col gap-3 mt-3 lg:mt-0 min-w-[200px]">
-                    <Button
-                      size="sm"
-                      className="bg-[#faa901] text-black hover:bg-[#f4b625] rounded-xl py-5 font-bold flex gap-2 w-full"
-                      onClick={() => setViewChild(matchToChild(match))}
-                    >
-                      View Details
-                    </Button>
-
-                    <Button
-                      className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-5 font-bold flex gap-2 w-full"
-                      onClick={() => handleApprove(match.id)}
-                    >
-                      <Check className="w-5 h-5" />
-                      Approve
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="border-red-500 text-red-500 hover:bg-red-50 rounded-xl py-5 font-bold flex gap-2 w-full"
-                      onClick={() => handleDecline(match.id)}
-                    >
-                      <X className="w-5 h-5" />
-                      Decline
-                    </Button>
+                    <div className="flex flex-col gap-3 mt-3 lg:mt-0 min-w-[200px]">
+                      <Button
+                        className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-5 font-bold flex gap-2 w-full"
+                        onClick={() => handleApprove(match.like_id)}
+                      >
+                        <Check className="w-5 h-5" /> Approve
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-red-500 text-red-500 hover:bg-red-50 rounded-xl py-5 font-bold flex gap-2 w-full"
+                        onClick={() => handleDecline(match.like_id)}
+                      >
+                        <X className="w-5 h-5" /> Decline
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            }
           </div>
+        
 
 
         </div>

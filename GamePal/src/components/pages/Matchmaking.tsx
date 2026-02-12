@@ -27,6 +27,13 @@ export type MatchChild = {
   matched_attributes: Record<string, string[]>; 
 };
 
+type ChildLike = {
+  like_id: string;
+  from_child: string;
+  to_child: string;
+  status: "pending" | "approved" | "rejected";
+};
+
 export function Matchmaking({ parent, onBack }: MatchmakingProps) {
   const [selectedChildId, setSelectedChildId] = useState(parent.children[0]?.id);
   const selectedChild = parent.children.find(c => c.id === selectedChildId);
@@ -140,35 +147,60 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
 
   // State
   const [viewChild, setViewChild] = useState<Child | MatchChild | null>(null);
-  const [likedKids, setLikedKids] = useState<string[]>([]);
-  const [toastMessage, setToastMessage] = useState("");
+  
+  const [childLikes, setChildLikes] = useState<ChildLike[]>([]);
+
+  useEffect(() => {
+    if (!selectedChildId) return;
+
+    const fetchLikes = async () => {
+      const { data, error } = await supabase
+        .from("child_likes_dashboard")
+        .select("*")
+        .or(`c_from_parent_id.eq.${parent.id},c_to_parent_id.eq.${parent.id}`) // fetch likes involving your children
+        .eq("from_child", selectedChildId);
+
+      if (error) {
+        console.error("Error fetching child likes:", error);
+      } else {
+        setChildLikes(data ?? []);
+      }
+    };
+
+    fetchLikes();
+  }, [selectedChildId, parent.id]);
 
   const toggleLike = async (kidId: string) => {
-    const alreadyLiked = likedKids.includes(kidId);
+    const alreadyLiked = childLikes.some(like => like.to_child === kidId && like.from_child === selectedChildId);
 
     if (alreadyLiked) {
       await supabase
         .from("child_likes")
         .delete()
-        .eq("child_a_id", selectedChildId)
-        .eq("child_b_id", kidId);
+        .eq("from_child", selectedChildId)
+        .eq("to_child", kidId);
+      setChildLikes(prev => prev.filter(l => !(l.from_child === selectedChildId && l.to_child === kidId)));
     } else {
-      await supabase.from("child_likes").insert({
-        child_a_id: selectedChildId,
-        child_b_id: kidId,
-        status: "pending",
-      });
+      const { data, error } = await supabase
+        .from("child_likes")
+        .insert({
+          from_child: selectedChildId,
+          to_child: kidId,
+          status: "pending",
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Error liking child:", error);
+      } else if (data) {
+        setChildLikes(prev => [...prev, data]);
+      }
     }
-
-    setLikedKids((prev) =>
-      alreadyLiked ? prev.filter((id) => id !== kidId) : [...prev, kidId]
-    );
-
-    setToastMessage(
-      alreadyLiked ? "Removed like" : "Profile liked 💜"
-    );
   };
-
+  
+  //const [likedKids, setLikedKids] = useState<string[]>([]);
+  const [toastMessage, setToastMessage] = useState("");
   useEffect(() => {
     if (!toastMessage) return;
     const timer = setTimeout(() => setToastMessage(""), 3000);
@@ -176,7 +208,7 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
   }, [toastMessage]);
 
   const likedProfiles = matchedKids.filter(kid =>
-    likedKids.includes(kid.id)
+    childLikes.some(like => like.to_child === kid.id)
   );
 
   return (
@@ -448,7 +480,7 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
                   className="mt-2 w-full bg-[#faa901] text-black hover:bg-[#f4b625]"
                   onClick={() => toggleLike(kid.id)}
                 >
-                  {likedKids.includes(kid.id) ? "Liked 💜" : "Like ❤️"}
+                  {childLikes.some(l => l.to_child === kid.id) ? "Liked 💜" : "Like ❤️"}
                 </Button>
 
               </div>
