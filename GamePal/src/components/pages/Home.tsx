@@ -15,7 +15,7 @@ export function Home({ onLogin, onSignup }: HomeProps) {
     const [showSignup, setShowSignup] = useState(false);
 
   return (
-    <div className="flex flex-col min-h-screen w-screen overflow-auto bg-gradient-to-br from-purple-600 to-yellow-400">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-purple-600 to-yellow-400">
       {/* Floating decorative emojis */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 text-6xl animate-bounce">🎮</div>

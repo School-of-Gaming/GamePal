@@ -16,7 +16,8 @@ export function ChildDetailsModal({ child, onClose }: ChildDetailsModalProps) {
   const playType = "play_types" in child ? child.play_types : child.play_type_ids ?? [];
   const theme = "themes" in child ? child.themes : child.theme_ids ?? [];
   const availability = "availability" in child ? child.availability : child.availability_ids ?? [];
-  const avatar =  "avatar" in child ? child.avatar : "emoji" in child ? (child as any).emoji : "🧒";
+  const avatar = "avatar" in child ? child.avatar : "emoji" in child ? (child as any).emoji : "🧒"; 
+  const bio = "bio" in child ? child.bio : "";
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl relative max-h-[85vh] flex flex-col">
@@ -37,7 +38,7 @@ export function ChildDetailsModal({ child, onClose }: ChildDetailsModalProps) {
           <h3 className="text-lg font-bold mb-1 border-b pb-1 text-black">
             About
           </h3>
-          <p className="text-sm text-gray-700 mb-4">{child.bio}</p>
+          <p className="text-sm text-gray-700 mb-4">{bio}</p>
 
           {/* Sections */}
           <div className="space-y-3">
