@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Info, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { ParentNav } from "../Nav";
 import type { Parent } from "../../App";
 import type { Child } from "../../App";
 import { ChildDetailsModal } from "../child/ChildDetailsModal";
+import { supabase } from "../../supabase/client";
 
 type Match = {
   id: string;
@@ -30,44 +31,8 @@ type ApprovedMatchesProps = {
 };
 
 export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
-  const [approvedMatches] = useState<Match[]>([
-    {
-      id: "1",
-      childName: "Jordan",
-      childAge: 9,
-      avatar: "🦊",
-      bio: "Loves Minecraft and drawing.",
-      games: ["Minecraft", "Roblox"],
-      language: ["English"],
-      hobbies: ["Drawing", "Gaming"],
-      interests: ["Adventure", "Animals"],
-      playType: ["Co-op", "Casual"],
-      theme: ["Fantasy"],
-      parentName: "Lisa Johnson",
-      parentEmail: "lisa.johnson@email.com",
-      commonTags: ["Minecraft", "English", "Gaming", "Co-op"],
-      availability: ["Morning", "Afternoon"],
-    },
-    {
-      id: "2",
-      childName: "Alex",
-      childAge: 10,
-      avatar: "🐱",
-       bio: "Enjoys Roblox and creative games.",
-      games: ["Roblox", "Fortnite"],
-      language: ["English", "Spanish"],
-      hobbies: ["Building", "Gaming"],
-      interests: ["Fantasy", "Creative"],
-      playType: ["Single Player", "Co-op"],
-      theme: ["Adventure"],
-      parentName: "John Smith",
-      parentEmail: "john.smith@email.com",
-      commonTags: ["Roblox", "Fantasy", "Creative", "English"],
-      availability: ["Morning", "Afternoon"],
-    },
-  ]);
-
-const [viewChild, setViewChild] = useState<Child | null>(null);
+  const [approvedMatches, setApprovedMatches] = useState<Match[]>([]);
+  const [viewChild, setViewChild] = useState<Child | null>(null);
 
   // Modal + scheduling state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -78,6 +43,45 @@ const [viewChild, setViewChild] = useState<Child | null>(null);
   const [ampm, setAmPm] = useState<"AM" | "PM">("AM");
   const [meetingNotes, setMeetingNotes] = useState("");
   const [notification, setNotification] = useState<string | null>(null);
+
+  // FETCH APPROVED MATCHES FROM VIEW
+  useEffect(() => {
+    fetchApprovedMatches();
+  }, []);
+
+  const fetchApprovedMatches = async () => {
+    const { data, error } = await supabase
+      .from("approved_matches_dashboard")
+      .select("*")
+      .order("approved_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching approved matches:", error);
+      return;
+    }
+
+    // Convert DB rows into your existing Match structure
+    const formatted: Match[] =
+      data?.map((row: any) => ({
+        id: row.match_id,
+        childName: row.other_child_name,
+        childAge: row.other_child_age,
+        avatar: row.other_child_avatar ?? "🧒",
+        bio: row.other_child_bio ?? "",
+        games: [],
+        language: [],
+        hobbies: [],
+        interests: [],
+        playType: [],
+        theme: [],
+        parentName: row.other_parent_name,
+        parentEmail: row.other_parent_email,
+        commonTags: [],
+        availability: [],
+      })) ?? [];
+
+    setApprovedMatches(formatted);
+  };
 
   const openModal = (match: Match) => {
     setSelectedMatch(match);
@@ -98,46 +102,43 @@ const [viewChild, setViewChild] = useState<Child | null>(null);
       return;
     }
 
-     const formattedTime =
-      timeFormat === "24"
-        ? meetingTime
-        : meetingTime +
-          " " +
-          ampm;
+    let formattedTime = "";
+    if (timeFormat === "24") {
+      formattedTime = meetingTime;
+    } else {
+      // Convert 12-hour + AM/PM to 24-hour internally
+      let [h, m] = meetingTime.split(":").map(Number);
+      if (ampm === "PM" && h < 12) h += 12;
+      if (ampm === "AM" && h === 12) h = 0;
+      formattedTime = `${h.toString().padStart(2, "0")}:${m
+        .toString()
+        .padStart(2, "0")}`;
+    }
 
     closeModal();
 
     setNotification(
       `Meeting with ${selectedMatch?.childName} scheduled on ${meetingDate} at ${formattedTime}!`
     );
+
     setTimeout(() => setNotification(null), 5000);
   };
 
-  // Helper to convert 24-hour to 12-hour for display
-   const convert24To12 = (time24: string) => {
-    if (!time24) return "";
-    let [h, m] = time24.split(":").map(Number);
-    let period: "AM" | "PM" = h >= 12 ? "PM" : "AM";
-    h = h % 12;
-    if (h === 0) h = 12;
-    setAmPm(period);
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-  };
-
-  const matchToChild = (match: Match): Child => ({
-  id: match.id,
-  name: match.childName,
-  age: match.childAge,
-  avatar: match.avatar,
-  bio: match.bio ?? "",
-  games: match.games ?? [],
-  language: match.language ?? [],
-  hobbies: match.hobbies ?? [],
-  interests: match.interests ?? [],
-  playType: match.playType ?? [],
-  theme: match.theme ?? [],
-  availability: match.availability ?? [],
-});
+    const matchToChild = (match: Match): Child => ({
+    id: match.id,
+    parent_id: "", 
+    name: match.childName,
+    age: match.childAge,
+    bio: match.bio ?? "",
+    games_ids: [],       
+    language_ids: [],    
+    hobbies_ids: [],
+    interests_ids: [],
+    play_type_ids: [],
+    theme_ids: [],
+    availability_ids: [],
+    avatar_id: match.avatar ?? undefined, 
+    });
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white relative">
@@ -223,23 +224,6 @@ const [viewChild, setViewChild] = useState<Child | null>(null);
                       </p>
                     </div>
 
-                    {/* Common Tags */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 mb-2">
-                        Common with your child:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {match.commonTags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="text-xs bg-[#faa901] text-black font-medium px-2 py-1 rounded-md"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
                     <span className="inline-block bg-green-50 border border-green-200 text-green-700 px-4 py-1 rounded-full text-xs font-bold">
                       Approved Match
                     </span>
@@ -270,7 +254,7 @@ const [viewChild, setViewChild] = useState<Child | null>(null);
         </div>
 
         {/* Schedule Modal */}
-         {showScheduleModal && selectedMatch && (
+        {showScheduleModal && selectedMatch && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
             onClick={closeModal}
@@ -279,7 +263,6 @@ const [viewChild, setViewChild] = useState<Child | null>(null);
               className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
               onClick={(e) => e.stopPropagation()}
             >
-                
               <button
                 className="absolute top-3 right-3 bg-red-600 text-white-700 hover:text-gray-900"
                 onClick={closeModal}
@@ -302,68 +285,61 @@ const [viewChild, setViewChild] = useState<Child | null>(null);
 
                 <select
                   value={timeFormat}
-                  onChange={(e) => {
-                    const newFormat = e.target.value as "12" | "24";
-                    setTimeFormat(newFormat);
-
-                    if (newFormat === "12") convert24To12(meetingTime);
-                  }}
+                  onChange={(e) => setTimeFormat(e.target.value as "12" | "24")}
                   className="w-full border rounded-lg px-3 py-2"
                 >
                   <option value="24">24-hour format</option>
                   <option value="12">12-hour format (AM/PM)</option>
                 </select>
 
+                {/* --------- FIX START: Proper 24/12-hour input handling --------- */}
                 <div className="flex gap-2 items-center">
-                  <input
-                    type="time"
-                    value={
-                      timeFormat === "24"
-                        ? meetingTime
-                        : convert24To12(meetingTime)
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (timeFormat === "24") {
-                        setMeetingTime(val);
-                      } else {
-                        const [h, m] = val.split(":").map(Number);
-                        const hours24 = ampm === "PM" ? (h % 12) + 12 : h % 12;
-                        setMeetingTime(
-                          `${hours24.toString().padStart(2, "0")}:${m
-                            .toString()
-                            .padStart(2, "0")}`
-                        );
-                      }
-                    }}
-                    className="flex-1 border-2 border-purple-400 rounded-lg px-4 py-2"
-                  />
-
-                  {timeFormat === "12" && (
-                    <select
-                      value={ampm}
-                      onChange={(e) => {
-                        const newAmPm = e.target.value as "AM" | "PM";
-                        setAmPm(newAmPm);
-                        const [hours, minutes] = meetingTime
-                          .split(":")
-                          .map(Number);
-                        const newHours =
-                          newAmPm === "PM" ? (hours % 12) + 12 : hours % 12;
-                        setMeetingTime(
-                          `${newHours.toString().padStart(2, "0")}:${minutes.toString().padStart(
-                            2,
-                            "0"
-                          )}`
-                        );
-                      }}
-                      className="border-2 border-purple-400 rounded-lg px-3 py-2"
-                    >
-                      <option>AM</option>
-                      <option>PM</option>
-                    </select>
+                  {timeFormat === "24" ? (
+                    <input
+                      type="time"
+                      value={meetingTime}
+                      onChange={(e) => setMeetingTime(e.target.value)}
+                      className="flex-1 border-2 border-purple-400 rounded-lg px-4 py-2"
+                    />
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={meetingTime ? Number(meetingTime.split(":")[0]) : ""}
+                        onChange={(e) => {
+                          const h = Math.min(12, Math.max(1, Number(e.target.value) || 1));
+                          const m = meetingTime ? meetingTime.split(":")[1] : "00";
+                          setMeetingTime(`${h.toString().padStart(2, "0")}:${m}`);
+                        }}
+                        className="w-16 border-2 border-purple-400 rounded-lg px-2 py-1 text-center"
+                      />
+                      <span>:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={meetingTime ? Number(meetingTime.split(":")[1]) : ""}
+                        onChange={(e) => {
+                          const m = Math.min(59, Math.max(0, Number(e.target.value) || 0));
+                          const h = meetingTime ? meetingTime.split(":")[0] : "12";
+                          setMeetingTime(`${h.padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
+                        }}
+                        className="w-16 border-2 border-purple-400 rounded-lg px-2 py-1 text-center"
+                      />
+                      <select
+                        value={ampm}
+                        onChange={(e) => setAmPm(e.target.value as "AM" | "PM")}
+                        className="border-2 border-purple-400 rounded-lg px-3 py-1"
+                      >
+                        <option>AM</option>
+                        <option>PM</option>
+                      </select>
+                    </>
                   )}
                 </div>
+                {/* --------- FIX END --------- */}
 
                 <textarea
                   rows={3}
