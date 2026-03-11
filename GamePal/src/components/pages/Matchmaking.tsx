@@ -191,20 +191,66 @@ export function Matchmaking({ parent, onBack }: MatchmakingProps) {
 }, [selectedChildId]);
 
 
+
   // ------------------- TOGGLE LIKE -------------------
   const toggleLike = async (kidId: string) => {
     if (!selectedChildId) return;
     const alreadyLiked = childLikes.some(like => like.other_child_id === kidId);
 
-    if (alreadyLiked) {
-      await supabase.from("child_likes").delete().eq("from_child", selectedChildId).eq("to_child", kidId);
-    } else {
-      await supabase.from("child_likes").insert({ from_child: selectedChildId, to_child: kidId, status: "pending" });
-    }
+    try {
+      if (alreadyLiked) {
+        await supabase
+          .from("child_likes")
+          .delete()
+          .eq("from_child", selectedChildId)
+          .eq("to_child", kidId);
+      } else {
+        const { data: insertedLike, error: insertError } = await supabase
+          .from("child_likes")
+          .insert({ from_child: selectedChildId, to_child: kidId, status: "pending" })
+          .select()
+          .single();
+        if (insertError) throw insertError;
 
-    // Re-fetch
-    const { data } = await supabase.from("child_likes_dashboard").select("*").eq("my_child_id", selectedChildId);
-    setChildLikes(data ?? []);
+        // Fetch recipient parent email
+        const { data: parentData, error: parentError } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", insertedLike.to_parent_id)
+          .single();
+        if (parentError || !parentData?.email) throw parentError;
+
+        const recipientEmail = parentData.email;
+
+        // Insert notification
+        await supabase.from("notifications").insert({
+          user_id: insertedLike.to_parent_id,
+          type: "like_received",
+          title: "New Playdate Request",
+          body: `${selectedChild?.name} wants to have a playdate`,
+          is_read: false,
+        });
+
+        // Queue email
+        await supabase.from("email_queue").insert({
+          user_id: insertedLike.to_parent_id,
+          to_email: recipientEmail,
+          type: "like_received",
+          subject: "New Playdate Request!",
+          body: `${selectedChild?.name} wants to have a playdate!`,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      // Re-fetch likes
+      const { data } = await supabase
+        .from("child_likes_dashboard")
+        .select("*")
+        .eq("my_child_id", selectedChildId);
+      setChildLikes(data ?? []);
+    } catch (err) {
+      console.error("toggleLike error:", err);
+    }
   };
 
   // ------------------- LIKED PROFILES -------------------

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Info, X } from "lucide-react";
+import { MessageCircleHeart, Info, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { ParentNav } from "../Nav";
 import type { Parent } from "../../App";
@@ -34,14 +34,10 @@ export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
   const [approvedMatches, setApprovedMatches] = useState<Match[]>([]);
   const [viewChild, setViewChild] = useState<Child | null>(null);
 
-  // Modal + scheduling state
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  // Message feature state
+  const [showMessageModal, setShowMessageModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [meetingDate, setMeetingDate] = useState("");
-  const [meetingTime, setMeetingTime] = useState("");
-  const [timeFormat, setTimeFormat] = useState<"24" | "12">("24");
-  const [ampm, setAmPm] = useState<"AM" | "PM">("AM");
-  const [meetingNotes, setMeetingNotes] = useState("");
+  const [messageText, setMessageText] = useState("");
   const [notification, setNotification] = useState<string | null>(null);
 
   // FETCH APPROVED MATCHES FROM VIEW
@@ -83,47 +79,6 @@ export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
     setApprovedMatches(formatted);
   };
 
-  const openModal = (match: Match) => {
-    setSelectedMatch(match);
-    setShowScheduleModal(true);
-  };
-
-  const closeModal = () => {
-    setShowScheduleModal(false);
-    setSelectedMatch(null);
-    setMeetingDate("");
-    setMeetingTime("");
-    setMeetingNotes("");
-  };
-
-  const handleScheduleMeeting = () => {
-    if (!meetingDate || !meetingTime) {
-      alert("Please select both date and time");
-      return;
-    }
-
-    let formattedTime = "";
-    if (timeFormat === "24") {
-      formattedTime = meetingTime;
-    } else {
-      // Convert 12-hour + AM/PM to 24-hour internally
-      let [h, m] = meetingTime.split(":").map(Number);
-      if (ampm === "PM" && h < 12) h += 12;
-      if (ampm === "AM" && h === 12) h = 0;
-      formattedTime = `${h.toString().padStart(2, "0")}:${m
-        .toString()
-        .padStart(2, "0")}`;
-    }
-
-    closeModal();
-
-    setNotification(
-      `Meeting with ${selectedMatch?.childName} scheduled on ${meetingDate} at ${formattedTime}!`
-    );
-
-    setTimeout(() => setNotification(null), 5000);
-  };
-
     const matchToChild = (match: Match): Child => ({
     id: match.id,
     parent_id: "", 
@@ -139,6 +94,82 @@ export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
     availability_ids: [],
     avatar_id: match.avatar ?? undefined, 
     });
+   
+    //Message modal
+  const openMessageModal = (match: Match) => {
+    setSelectedMatch(match);
+    setShowMessageModal(true);
+  };
+
+  const closeMessageModal = () => {
+    setShowMessageModal(false);
+    setSelectedMatch(null);
+    setMessageText("");
+  };
+
+  // Send message
+  const handleSendMessage = async () => {
+    if (!messageText.trim()) {
+      alert("Please enter a message");
+      return;
+    }
+
+    if (!selectedMatch?.parentEmail) {
+      alert("No recipient email found");
+      return;
+    }
+
+    try {
+      // GET RECEIVER ID 
+      const { data: receiverIdData, error: receiverIdError } = await supabase
+        .rpc("get_user_id_from_email", { user_email: selectedMatch.parentEmail });
+
+      if (receiverIdError || !receiverIdData) {
+        throw new Error("Receiver not found");
+      }
+
+      const receiverId = receiverIdData as string; // UUID from auth.users
+
+      //  INSERT MESSAGE 
+      const { error: msgError } = await supabase.from("messages").insert({
+        sender_id: parent.id,
+        receiver_id: receiverId,
+        content: messageText,
+        match_id: selectedMatch.id ?? null,
+      });
+      if (msgError) throw msgError;
+
+      // INSERT NOTIFICATION 
+      const { error: notifError } = await supabase.from("notifications").insert({
+        user_id: receiverId,
+        type: "message_received",
+        title: `New message from ${parent.name}`,
+        body: messageText,
+        created_at: new Date().toISOString(),
+      });
+      if (notifError) console.error("Notification insert error:", notifError);
+
+      //  QUEUE EMAIL 
+      const { error: emailError } = await supabase.from("email_queue").insert({
+        user_id: receiverId,
+        to_email: selectedMatch.parentEmail,
+        type: "message",
+        subject: `New message from ${parent.name}`,
+        body: messageText,
+        created_at: new Date().toISOString(),
+      });
+      if (emailError) console.error("Email queue insert error:", emailError);
+
+      //  SUCCESS 
+      setNotification(`Message sent to ${selectedMatch.parentName}!`);
+      closeMessageModal();
+      setTimeout(() => setNotification(null), 5000);
+
+    } catch (err: any) {
+      console.error("Failed to send message:", err);
+      alert("Failed to send message: " + err.message);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen w-screen bg-white relative">
@@ -242,10 +273,10 @@ export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
                   <Button
                     variant="ghost"
                     className="border border-gray-200 text-white hover:text-[#faa901] rounded-xl py-5 font-bold flex gap-2"
-                    onClick={() => openModal(match)}
+                    onClick={() => openMessageModal(match)}
                   >
-                    <Calendar className="w-5 h-5" />
-                    Schedule Meeting
+                    Send Message
+                    <MessageCircleHeart className="w-5 h-5" />
                   </Button>
                 </div>
               </div>
@@ -253,108 +284,41 @@ export function ApprovedMatches({ parent, onBack }: ApprovedMatchesProps) {
           ))}
         </div>
 
-        {/* Schedule Modal */}
-        {showScheduleModal && selectedMatch && (
+        {/* Message Modal */}
+        {showMessageModal && selectedMatch && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            onClick={closeModal}
+            onClick={closeMessageModal}
           >
             <div
               className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="absolute top-3 right-3 bg-red-600 text-white-700 hover:text-gray-900"
-                onClick={closeModal}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-900"
+                onClick={closeMessageModal}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 text-red-600" />
               </button>
 
               <h2 className="text-xl font-bold mb-4 text-black flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-black" />
-                Schedule a Meetup
+                Message {selectedMatch.childName}'s Parent
+                <MessageCircleHeart className="w-5 h-5 text-purple-600" />
               </h2>
 
-              <div className="space-y-4">
-                <input
-                  type="date"
-                  value={meetingDate}
-                  onChange={(e) => setMeetingDate(e.target.value)}
-                  className="w-full border-2 border-purple-400 rounded-lg px-4 py-2"
-                />
-
-                <select
-                  value={timeFormat}
-                  onChange={(e) => setTimeFormat(e.target.value as "12" | "24")}
-                  className="w-full border rounded-lg px-3 py-2"
-                >
-                  <option value="24">24-hour format</option>
-                  <option value="12">12-hour format (AM/PM)</option>
-                </select>
-
-                {/* --------- FIX START: Proper 24/12-hour input handling --------- */}
-                <div className="flex gap-2 items-center">
-                  {timeFormat === "24" ? (
-                    <input
-                      type="time"
-                      value={meetingTime}
-                      onChange={(e) => setMeetingTime(e.target.value)}
-                      className="flex-1 border-2 border-purple-400 rounded-lg px-4 py-2"
-                    />
-                  ) : (
-                    <>
-                      <input
-                        type="number"
-                        min={1}
-                        max={12}
-                        value={meetingTime ? Number(meetingTime.split(":")[0]) : ""}
-                        onChange={(e) => {
-                          const h = Math.min(12, Math.max(1, Number(e.target.value) || 1));
-                          const m = meetingTime ? meetingTime.split(":")[1] : "00";
-                          setMeetingTime(`${h.toString().padStart(2, "0")}:${m}`);
-                        }}
-                        className="w-16 border-2 border-purple-400 rounded-lg px-2 py-1 text-center"
-                      />
-                      <span>:</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={meetingTime ? Number(meetingTime.split(":")[1]) : ""}
-                        onChange={(e) => {
-                          const m = Math.min(59, Math.max(0, Number(e.target.value) || 0));
-                          const h = meetingTime ? meetingTime.split(":")[0] : "12";
-                          setMeetingTime(`${h.padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
-                        }}
-                        className="w-16 border-2 border-purple-400 rounded-lg px-2 py-1 text-center"
-                      />
-                      <select
-                        value={ampm}
-                        onChange={(e) => setAmPm(e.target.value as "AM" | "PM")}
-                        className="border-2 border-purple-400 rounded-lg px-3 py-1"
-                      >
-                        <option>AM</option>
-                        <option>PM</option>
-                      </select>
-                    </>
-                  )}
-                </div>
-                {/* --------- FIX END --------- */}
-
-                <textarea
-                  rows={3}
-                  value={meetingNotes}
-                  onChange={(e) => setMeetingNotes(e.target.value)}
-                  className="w-full border bg-gray-50 rounded-lg px-4 py-2"
-                  placeholder="Add notes..."
-                />
-              </div>
+              <textarea
+                rows={4}
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2"
+                placeholder="Write your message..."
+              />
 
               <Button
                 className="mt-6 w-full bg-[#faa901] text-black hover:bg-[#f4b625]"
-                onClick={handleScheduleMeeting}
+                onClick={handleSendMessage}
               >
-                Schedule Meeting
+                Send Message
               </Button>
             </div>
           </div>

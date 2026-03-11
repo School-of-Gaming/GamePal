@@ -78,22 +78,92 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
 }, [parent.children]);
 
   // ------------------- APPROVE / DECLINE -------------------
-  const handleApprove = async (like_id: string) => {
-    const { error } = await supabase
-      .from("child_likes")
-      .update({ status: "approved", approved_at: new Date().toISOString() })
-      .eq("id", like_id);
-    if (error) console.error(error);
-    else fetchMatches();
+  const handleApprove = async (match: Match) => {
+    try {
+      // Update like to "approved"
+      const { error: updateError } = await supabase
+        .from("child_likes")
+        .update({ status: "approved", approved_at: new Date().toISOString() })
+        .eq("id", match.like_id);
+      if (updateError) throw updateError;
+
+      // Fetch recipient email
+      const { data: parentData, error: parentError } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", match.to_parent_id)
+        .single();
+      if (parentError || !parentData?.email) throw parentError;
+
+      const recipientEmail = parentData.email;
+
+      // Insert notification
+      await supabase.from("notifications").insert({
+        user_id: match.to_parent_id,
+        type: "match_approved",
+        message: "Your playdate request was approved!",
+        created_at: new Date().toISOString(),
+        read: false,
+      });
+
+      // Queue email
+      await supabase.from("email_queue").insert({
+        user_id: match.to_parent_id,
+        to_email: recipientEmail,
+        type: "match_approved",
+        subject: "Playdate Approved!",
+        body: `Your playdate request for ${match.to_child_name} was approved!`,
+        created_at: new Date().toISOString(),
+      });
+
+      fetchMatches();
+    } catch (err) {
+      console.error("handleApprove error:", err);
+    }
   };
 
-  const handleDecline = async (like_id: string) => {
-    const { error } = await supabase
-      .from("child_likes")
-      .update({ status: "rejected" })
-      .eq("id", like_id);
-    if (error) console.error(error);
-    else fetchMatches();
+  const handleDecline = async (match: Match) => {
+    try {
+      // Update like to "rejected"
+      const { error: updateError } = await supabase
+        .from("child_likes")
+        .update({ status: "rejected" })
+        .eq("id", match.like_id);
+      if (updateError) throw updateError;
+
+      // Fetch recipient email
+      const { data: parentData, error: parentError } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", match.to_parent_id)
+        .single();
+      if (parentError || !parentData?.email) throw parentError;
+
+      const recipientEmail = parentData.email;
+
+      // Insert notification
+      await supabase.from("notifications").insert({
+        user_id: match.to_parent_id,
+        type: "match_rejected",
+        message: "Your playdate request was declined.",
+        created_at: new Date().toISOString(),
+        read: false,
+      });
+
+      // Queue email
+      await supabase.from("email_queue").insert({
+        user_id: match.to_parent_id,
+        to_email: recipientEmail,
+        type: "match_rejected",
+        subject: "Playdate Declined",
+        body: `Your playdate request for ${match.to_child_name} was declined.`,
+        created_at: new Date().toISOString(),
+      });
+
+      fetchMatches();
+    } catch (err) {
+      console.error("handleDecline error:", err);
+    }
   };
 
   const childIds = parent.children.map(c => c.id);
@@ -217,7 +287,7 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
                         <Button
                           size="sm"
                           className="bg-red-500 text-white hover:bg-red-600 rounded-xl py-5 font-bold w-full lg:w-40"
-                          onClick={() => handleDecline(match.like_id)} 
+                          onClick={() => handleDecline(match)} 
                         >
                           Unlike
                         </Button>
@@ -268,14 +338,14 @@ export function PotentialMatches({ parent, onBack }: PotentialMatchesProps) {
                         </Button>
                         <Button
                           className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-5 font-bold flex gap-2 w-full"
-                          onClick={() => handleApprove(match.like_id)}
+                          onClick={() => handleApprove(match)}
                         >
                           <Check className="w-5 h-5" /> Approve
                         </Button>
                         <Button
                           variant="outline"
                           className="border-red-500 text-red-500 hover:bg-red-50 rounded-xl py-5 font-bold flex gap-2 w-full"
-                          onClick={() => handleDecline(match.like_id)}
+                          onClick={() => handleDecline(match)}
                         >
                           <X className="w-5 h-5" /> Decline
                         </Button>
