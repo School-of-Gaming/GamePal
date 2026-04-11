@@ -3,6 +3,7 @@ import { User, Lock, ShieldCheck, AlertTriangle, Save, RefreshCw, Mail, CheckCir
 import { Button } from "../ui/button";
 import { ParentNav } from "../Nav";
 import type { Parent } from "../../App";
+import { supabase } from "../../supabase/client";
 
 type ProfileSettingsProps = {
   parent: Parent;
@@ -16,6 +17,11 @@ export function ProfileSettings({ parent, onBack }: ProfileSettingsProps) {
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+   
+  const [fullName, setFullName] = useState(parent.name);
+  const [email, setEmail] = useState(parent.email);
+
+  const [loading, setLoading] = useState(false);
 
   // Password validation 
   const passwordRules = {
@@ -27,9 +33,75 @@ export function ProfileSettings({ parent, onBack }: ProfileSettingsProps) {
 
   const passwordsMatch = newPassword === confirmPassword && newPassword.length > 0;
 
+  // UPDATE PROFILE
+  const handleUpdateProfile = async () => {
+    setLoading(true);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        email: email,
+      })
+      .eq("id", parent.id);
+
+    setLoading(false);
+
+    if (error) {
+      alert("Failed to update profile: " + error.message);
+      return;
+    }
+
+    alert("Profile updated successfully ✅");
+  };
+
+
+  // CHANGE PASSWORD
+  const handleChangePassword = async () => {
+    if (!passwordsMatch) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      alert("Password change failed: " + error.message);
+      return;
+    }
+
+    alert("Password updated successfully 🔐");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  // DELETE ACCOUNT
+  const handleDeleteAccount = async () => {
+    const confirmDelete = confirm(
+      "Are you sure? This will permanently delete your account."
+    );
+
+    if (!confirmDelete) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", parent.id);
+
+    if (error) {
+      alert("Delete failed: " + error.message);
+      return;
+    }
+
+    alert("Account deleted");
+    window.location.reload();
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen bg-white">
-      <ParentNav parent={parent} />
+      <ParentNav parent={parent} onLogout={() => window.location.reload()} />
 
       <main className="flex-1 p-6 overflow-auto bg-[#f8f6fb]">
         <Button
@@ -87,7 +159,9 @@ export function ProfileSettings({ parent, onBack }: ProfileSettingsProps) {
                   </div>
                 </div>
 
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg flex gap-2">
+                <Button 
+                  onClick={handleUpdateProfile}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg flex gap-2">
                   <Save size={18} />
                   Save Profile
                 </Button>
@@ -182,7 +256,9 @@ export function ProfileSettings({ parent, onBack }: ProfileSettingsProps) {
                   </p>
                 )}
 
-                <Button className="w-full bg-[#faa901] text-black hover:bg-[#f4b625]">
+                <Button 
+                  onClick={handleChangePassword}
+                  className="w-full bg-[#faa901] text-black hover:bg-[#f4b625]">
                   <RefreshCw size={18} />
                   Change Password
                 </Button>
@@ -248,7 +324,9 @@ export function ProfileSettings({ parent, onBack }: ProfileSettingsProps) {
             <p className="text-sm text-gray-500 mb-6">
               Deleting your account permanently removes all profiles and matches.
             </p>
-            <Button variant="outline" className="border-red-200 text-red-600">
+            <Button 
+              onClick={handleDeleteAccount}
+              variant="outline" className="border-red-200 text-red-600">
               Delete Account
             </Button>
           </div>

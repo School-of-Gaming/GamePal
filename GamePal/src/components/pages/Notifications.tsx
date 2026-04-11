@@ -135,7 +135,7 @@ export function Notifications({ parent, onBack }: NotificationsProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-1 border-gray-400 text-gray-700 hover:bg-gray-100"
+                  className="flex items-center gap-1 border-gray-400 text-gray-400 hover:bg-gray-100"
                   onClick={() => markAsRead(n.id)}
                 >
                   <Eye className="w-4 h-4" /> Mark as Read
